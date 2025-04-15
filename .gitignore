@@ -52,3 +52,17 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+
+Backend/bin/
+Backend/obj/
+
+Backend/*.user
+Backend/*.suo
+Backend/*.userosscache
+Backend/*.sln.docstates
+
+Backend/wwwroot/
+
+Backend/appsettings.Development.json
+Backend/appsettings.json
