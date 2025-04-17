@@ -67,7 +67,7 @@ Backend/wwwroot/
 
 Backend/appsettings.Development.json
 Backend/appsettings.json
-
+Backend/.idea/
 
 # Frontend 
 Frontend/logs
