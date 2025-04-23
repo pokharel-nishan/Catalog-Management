@@ -1,6 +1,14 @@
+using Microsoft.AspNetCore.Identity;
+
 namespace Backend.Entities;
 
-public class User
+public class User: IdentityUser<Guid>
 {
+    public string FirstName { get; set; }
     
+    public string LastName { get; set; }
+    
+    public string Address { get; set; }
+    
+    public string DateJoined { get; set; }
 }
