@@ -13,7 +13,7 @@ public class Cart
     
     public int TotalQuantity { get; set; }
     
-    public float TotalPrice { get; set; }
+    public decimal TotalPrice { get; set; }
     
     [Required]
     public virtual User User { get; set; }

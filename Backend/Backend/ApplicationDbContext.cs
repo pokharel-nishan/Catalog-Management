@@ -11,5 +11,9 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, Guid>
         
     }
     
+    public DbSet<Cart> Carts { get; set; }
+    public DbSet<Book> Books { get; set; } 
+    
+    
     
 }
