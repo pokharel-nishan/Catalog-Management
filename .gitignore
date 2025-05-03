@@ -93,3 +93,6 @@ Frontend/*.ntvs*
 Frontend/*.njsproj
 Frontend/*.sln
 Frontend/*.sw?
+
+.vs/
+*.csproj.user
