@@ -13,15 +13,11 @@ namespace Backend.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
-    private readonly SignInManager<User> _signInManager;
-    private readonly UserManager<User> _userManager;
 
 
     public UserController(IUserService userService, SignInManager<User> signInManager)
     {
         _userService = userService;
-        _signInManager = signInManager;
-
     }
     
     [HttpPost("register")]
