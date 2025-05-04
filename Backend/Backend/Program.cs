@@ -2,6 +2,7 @@ using Backend;
 using Backend.Entities;
 using Backend.Repositories;
 using Backend.Services;
+using Backend.SeedingScripts;
 using Backend.Services.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,9 +22,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql
 //     .AddDefaultTokenProviders();
 
 // builder.Services.AddIdentity<User, Role>()
-//     .AddEntityFrameworkStores<ApplicationDbContext>()
+//     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-builder.Services.AddIdentityApiEndpoints<User>(options => {
+builder.Services.AddIdentity<User, Role>(options => {
         options.SignIn.RequireConfirmedAccount = false; // Set to true if email confirmation is required
         options.Password.RequireDigit = true;
         options.Password.RequireLowercase = true;
@@ -33,6 +34,8 @@ builder.Services.AddIdentityApiEndpoints<User>(options => {
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+// builder.Services.AddIdentityApiEndpoints<User>();
 
 // cors config for frontend
 builder.Services.AddCors(options =>
@@ -63,7 +66,7 @@ using (var scope = app.Services.CreateScope())
     await SeedRolesAndAdmin.SeedRolesAndAdminAsync(roleManager, userManager);
 }
 
-app.MapGroup("/auth").MapIdentityApi<User>();
+// app.MapGroup("/auth").MapIdentityApi<User>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
