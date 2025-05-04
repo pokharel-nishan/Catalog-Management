@@ -51,17 +51,20 @@ public class UserController : ControllerBase
             
             if (result.Succeeded)
             {
-                return Ok(new { Message = "Login successful" });
-            }
-            
-            if (result.IsLockedOut)
-            {
-                return StatusCode(403, "Account locked out");
-            }
-            
-            if (result.RequiresTwoFactor)
-            {
-                return StatusCode(401, "Requires two-factor authentication");
+                var user = await _userService.GetUserByEmailAsync(loginDto.Email);
+                if (user == null)
+                {
+                    return StatusCode(500, "User not found after successful login");
+                }
+                
+                // Generate the token
+                var token = await _userService.GenerateTokenAsync(user);
+                
+                return Ok(new { 
+                    Message = "Login successful",
+                    Token = token,
+                    UserId = user.Id
+                });
             }
             
             return Unauthorized("Invalid login attempt");

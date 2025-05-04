@@ -9,7 +9,10 @@ public interface IUserService
 {
     Task<User> RegisterUserAsync(RegisterDTO request);
     
+    Task<User> GetUserByEmailAsync(string email);
+
     Task<SignInResult> LoginUserAsync(LoginDTO loginDto);
 
+    Task<string> GenerateTokenAsync(User user);
 
 }

@@ -9,9 +9,12 @@ namespace Backend.Services;
 public class UserService: IUserService
 {
     private readonly IUserRepository _userRepository;
-    public UserService(IUserRepository userRepository)
+    private readonly UserManager<User> _userManager;
+
+    public UserService(IUserRepository userRepository, UserManager<User> userManager)
     {
         _userRepository = userRepository;
+        _userManager = userManager;
     }
     
     public async Task<User> RegisterUserAsync(RegisterDTO registerDto)
@@ -37,5 +40,20 @@ public class UserService: IUserService
     public async Task<SignInResult> LoginUserAsync(LoginDTO loginDto)
     {
         return await _userRepository.LoginAsync(loginDto.Email, loginDto.Password, loginDto.RememberMe);
+    }
+    
+    public async Task<User> GetUserByEmailAsync(string email)
+    {
+        return await _userManager.FindByEmailAsync(email);
+    }
+    
+    public async Task<string> GenerateTokenAsync(User user)
+    {
+        // Generate  token using the Identity API
+        var tokenProvider = _userManager.Options.Tokens.PasswordResetTokenProvider;
+        return await _userManager.GenerateUserTokenAsync(
+            user, 
+            tokenProvider, 
+            "Authentication");
     }
 }
