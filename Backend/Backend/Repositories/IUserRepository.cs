@@ -11,4 +11,7 @@ public interface IUserRepository
     
     Task<SignInResult> LoginAsync(string email, string password, bool rememberMe = false);
 
+    public Task<Guid> GetAdminIdAsync();
+
+
 }

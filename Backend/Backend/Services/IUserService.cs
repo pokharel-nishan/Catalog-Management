@@ -15,4 +15,6 @@ public interface IUserService
 
     Task<string> GenerateTokenAsync(User user);
 
+    public Task<Guid> GetAdminIdAsync();
+
 }

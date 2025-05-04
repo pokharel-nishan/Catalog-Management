@@ -1,6 +1,9 @@
 using Backend.Entities;
 using Microsoft.AspNetCore.Identity;
 
+using Backend.Entities;
+using Microsoft.AspNetCore.Identity;
+
 namespace Backend.Repositories;
 
 public class UserRepository: IUserRepository
@@ -43,4 +46,16 @@ public class UserRepository: IUserRepository
         // use the Identity system to validate the password and sign in
         return await _signInManager.PasswordSignInAsync(user, password, rememberMe, lockoutOnFailure: false);
     }
+
+      public async Task<Guid> GetAdminIdAsync()
+    {
+        var admins = await _userManager.GetUsersInRoleAsync("Admin");
+        var admin = admins.FirstOrDefault();
+
+        if (admin == null)
+        {
+            Console.WriteLine("Admin user not found");
+        }
+        return admin.Id;
+}
 }

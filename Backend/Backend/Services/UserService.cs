@@ -56,4 +56,9 @@ public class UserService: IUserService
             tokenProvider, 
             "Authentication");
     }
+
+     public async Task<Guid> GetAdminIdAsync()
+    {
+        return await _userRepository.GetAdminIdAsync();
+    }
 }

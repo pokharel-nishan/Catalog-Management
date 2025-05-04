@@ -20,6 +20,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql
 // builder.Services.AddIdentityApiEndpoints<User>().AddEntityFrameworkStores<ApplicationDbContext>()
 //     .AddDefaultTokenProviders();
 
+// builder.Services.AddIdentity<User, Role>()
+//     .AddEntityFrameworkStores<ApplicationDbContext>()
+
 builder.Services.AddIdentityApiEndpoints<User>(options => {
         options.SignIn.RequireConfirmedAccount = false; // Set to true if email confirmation is required
         options.Password.RequireDigit = true;
@@ -42,11 +45,23 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<IBookRepository, BookRepository>();
+builder.Services.AddScoped<IBookService, BookService>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<SignInManager<User>, CustomSignInManager<User>>();
 var app = builder.Build();
+
+// Call seeding method to seed roles and admin details
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var roleManager = services.GetRequiredService<RoleManager<Role>>();
+    var userManager = services.GetRequiredService<UserManager<User>>();
+
+    await SeedRolesAndAdmin.SeedRolesAndAdminAsync(roleManager, userManager);
+}
 
 app.MapGroup("/auth").MapIdentityApi<User>();
 
