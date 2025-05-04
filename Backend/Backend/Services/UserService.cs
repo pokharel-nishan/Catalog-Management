@@ -1,6 +1,8 @@
+using Backend.DTOs.Common;
 using Backend.DTOs.User;
 using Backend.Entities;
 using Backend.Repositories;
+using Microsoft.AspNetCore.Identity;
 
 namespace Backend.Services;
 
@@ -26,9 +28,14 @@ public class UserService: IUserService
             LastName = registerDto.LastName,
             Address = registerDto.Address,
             DateJoined = DateTime.Now.ToString("yyyy-MM-dd"),
-            UserName = registerDto.FirstName.ToLower() + registerDto.LastName.ToLower()
+            UserName = registerDto.Email
         };
         
         return await _userRepository.CreateUserAsync(user, registerDto.Password);
+    }
+    
+    public async Task<SignInResult> LoginUserAsync(LoginDTO loginDto)
+    {
+        return await _userRepository.LoginAsync(loginDto.Email, loginDto.Password, loginDto.RememberMe);
     }
 }

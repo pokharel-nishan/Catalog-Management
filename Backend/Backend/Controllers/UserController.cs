@@ -1,7 +1,9 @@
+using Backend.DTOs.Common;
 using Backend.DTOs.User;
 using Backend.Entities;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers;
@@ -11,10 +13,15 @@ namespace Backend.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly SignInManager<User> _signInManager;
+    private readonly UserManager<User> _userManager;
 
-    public UserController(IUserService userService)
+
+    public UserController(IUserService userService, SignInManager<User> signInManager)
     {
         _userService = userService;
+        _signInManager = signInManager;
+
     }
     
     [HttpPost("register")]
@@ -35,14 +42,40 @@ public class UserController : ControllerBase
         }
     }
     
-    [HttpGet(Name = "GetUser")]
-    public IEnumerable<WeatherForecast> Get()
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginDTO loginDto)
     {
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+        try
+        {
+            var result = await _userService.LoginUserAsync(loginDto);
+            
+            if (result.Succeeded)
             {
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                TemperatureC = Random.Shared.Next(-20, 55),
-            })
-            .ToArray();
+                return Ok(new { Message = "Login successful" });
+            }
+            
+            if (result.IsLockedOut)
+            {
+                return StatusCode(403, "Account locked out");
+            }
+            
+            if (result.RequiresTwoFactor)
+            {
+                return StatusCode(401, "Requires two-factor authentication");
+            }
+            
+            return Unauthorized("Invalid login attempt");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"An error occurred during login: {ex.Message}");
+        }
+    }
+    
+    [Authorize]
+    [HttpGet("me")]
+    public IActionResult GetCurrentUser()
+    {
+        return Ok(new { Message = "You are authenticated", UserId = User.Identity.Name });
     }
 }
