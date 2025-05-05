@@ -1,3 +1,4 @@
+using Backend.DTOs.Admin.Staff;
 using Backend.DTOs.Common;
 using Backend.DTOs.User;
 using Backend.Entities;
@@ -8,7 +9,8 @@ namespace Backend.Services;
 public interface IUserService
 {
     Task<User> RegisterUserAsync(RegisterDTO request);
-    
+    Task<User> CreateStaffUserAsync(AddStaffUserDTO addStaffUserDTO);
+
     Task<User> GetUserByEmailAsync(string email);
 
     Task<SignInResult> LoginUserAsync(LoginDTO loginDto);

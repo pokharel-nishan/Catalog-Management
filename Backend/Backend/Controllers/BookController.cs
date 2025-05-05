@@ -20,9 +20,9 @@ public class BookController : ControllerBase
         _userService = userService;
     }
 
-    [HttpPost(Name = "AddBook")]
-    //[Authorize(Roles ="Admin")]
-    public async Task<IActionResult> Post(AddBookDTO addBookDTO)
+    [HttpPost("addBook")]
+    //[Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AddBookAsync([FromBody] AddBookDTO addBookDTO)
     {
         var adminId = await _userService.GetAdminIdAsync();
 
@@ -35,6 +35,45 @@ public class BookController : ControllerBase
         else
         {
             return BadRequest($"Error: Book '{addBookDTO.Title}' (ISBN: {addBookDTO.ISBN}) could not be added.");
+        }
+    }
+
+    [HttpGet("getAllBooks")]
+    //[Authorize(Roles = "Admin")]
+    public async Task<List<Book>> GetAllBooksAsync()
+    {
+        return await _bookService.GetAllBooksAsync();
+    }
+
+    [HttpPut("updateBookDetails/{bookId}")]
+    //[Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateBookDetailsAsync(Guid bookId, UpdateBookDTO updateBookDTO)
+    {
+        bool isBookUpdated = await _bookService.UpdateBookDetailsAsync(bookId, updateBookDTO);
+
+        if (isBookUpdated)
+        {
+            return Ok($"Success: Book '{updateBookDTO.Title}' (ISBN: {updateBookDTO.ISBN}) updated successfully!");
+        }
+        else
+        {
+            return BadRequest($"Error: Book '{updateBookDTO.Title}' (ISBN: {updateBookDTO.ISBN}) could not be updated.");
+        }
+    }
+
+    [HttpDelete("deleteBook/{bookId}")]
+    //[Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteBookAsync(Guid bookId)
+    {
+        bool isBookDeleted = await _bookService.DeleteBookAsync(bookId);
+
+        if (isBookDeleted)
+        {
+            return Ok($"Success: Book deleted successfully!");
+        }
+        else
+        {
+            return BadRequest($"Error: Book could not be deleted.");
         }
     }
 }

@@ -24,14 +24,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql
 // builder.Services.AddIdentity<User, Role>()
 //     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-builder.Services.AddIdentity<User, Role>(options => {
-        options.SignIn.RequireConfirmedAccount = false; // Set to true if email confirmation is required
-        options.Password.RequireDigit = true;
-        options.Password.RequireLowercase = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireNonAlphanumeric = true;
-        options.Password.RequiredLength = 8;
-    })
+builder.Services.AddIdentity<User, Role>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false; // Set to true if email confirmation is required
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 8;
+})
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
@@ -50,6 +51,9 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IBookService, BookService>();
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();

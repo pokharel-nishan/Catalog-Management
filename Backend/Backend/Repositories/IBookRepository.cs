@@ -6,16 +6,16 @@ namespace Backend.Repositories
     public interface IBookRepository
     {
         // Create
-        public Task<bool> AddBookAsync(AddBookDTO addBookDTO, Guid adminId);
+        public Task<bool> AddBookAsync(Book book);
 
         // Read
-        //public List<Book> GetAllBooks();
-        //public Book GetBookByISBN(string ISBN);
+        public Task<List<Book>> GetAllBooksAsync();
+        public Task<Book> GetBookByIdAsync(Guid bookId);
 
-        //// Update
-        //public bool UpdateBook(string ISBN, UpdateBookDTO updateBookDTO);
+        // Update
+        public Task<bool> UpdateBookDetailsAsync(Book book);
 
-        //// Delete
-        //public bool DeleteBook(string ISBN);
+        // Delete
+        public Task<bool> DeleteBookAsync (Guid bookId);
     }
 }
