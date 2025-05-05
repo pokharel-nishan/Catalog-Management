@@ -1,3 +1,4 @@
+using Backend.DTOs.Admin.Staff;
 using Backend.DTOs.Common;
 using Backend.DTOs.User;
 using Backend.Entities;
@@ -36,7 +37,27 @@ public class UserService: IUserService
         
         return await _userRepository.CreateUserAsync(user, registerDto.Password);
     }
-    
+
+    public async Task<User> CreateStaffUserAsync(AddStaffUserDTO addStaffUserDTO)
+    {
+        if (await _userRepository.UserExistsAsync(addStaffUserDTO.Email))
+        {
+            throw new Exception($"Email {addStaffUserDTO.Email} already exists");
+        }
+
+        var staffUser = new User()
+        {
+            Email = addStaffUserDTO.Email,
+            FirstName = addStaffUserDTO.FirstName,
+            LastName = addStaffUserDTO.LastName,
+            Address = addStaffUserDTO.Address,
+            DateJoined = DateTime.Now.ToString("yyyy-MM-dd"),
+            UserName = addStaffUserDTO.Email
+        };
+
+        return await _userRepository.CreateStaffUserAsync(staffUser, addStaffUserDTO.Password);
+    }
+
     public async Task<SignInResult> LoginUserAsync(LoginDTO loginDto)
     {
         return await _userRepository.LoginAsync(loginDto.Email, loginDto.Password, loginDto.RememberMe);
