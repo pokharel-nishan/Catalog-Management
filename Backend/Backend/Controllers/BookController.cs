@@ -76,4 +76,63 @@ public class BookController : ControllerBase
             return BadRequest($"Error: Book could not be deleted.");
         }
     }
+    
+    /// Browse paginated book with optional filters and sorting
+    [HttpGet]
+    public async Task<ActionResult<PaginatedResponseDTO<BookSummaryDTO>>> GetBooks(
+        [FromQuery] BookPaginationQueryDTO pagination,
+        [FromQuery] BookFilterDTO filters)
+    {
+        try
+        {
+            // validate pagination
+            if (pagination.PageNumber < 1) pagination.PageNumber = 1;
+            if (pagination.PageSize < 1) pagination.PageSize = 10; // minimum page size
+            if (pagination.PageSize > 50) pagination.PageSize = 50; // maximum page size
+
+            var result = await _bookService.GetPaginatedBooksAsync(pagination, filters);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"An error occurred while retrieving books: {ex.Message}");
+        }
+    }
+
+    /// Get detailed information for a specific book
+    [HttpGet("{bookId}")]
+    public async Task<ActionResult<BookDetailDTO>> GetBookById(Guid bookId)
+    {
+        try
+        {
+            var book = await _bookService.GetBookDetailsByIdAsync(bookId);
+            
+            if (book == null)
+            {
+                return NotFound($"Book with ID {bookId} not found");
+            }
+
+            return Ok(book);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"An error occurred while retrieving the book: {ex.Message}");
+        }
+    }
+    
+    /// Get a list of available filters for books (genres, languages, formats, etc.)
+    [HttpGet("filters")]
+    public async Task<ActionResult> GetBookFilters()
+    {
+        try
+        {
+            var filterOptions = await _bookService.GetBookFilterDetailsAsync();
+
+            return Ok(filterOptions);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"An error occurred while retrieving filter options: {ex.Message}");
+        }
+    }
 }

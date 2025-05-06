@@ -1,5 +1,4 @@
-﻿using Backend.DTOs.Admin.Book;
-using Backend.Entities;
+﻿using Backend.Entities;
 
 namespace Backend.Repositories
 {
@@ -17,5 +16,23 @@ namespace Backend.Repositories
 
         // Delete
         public Task<bool> DeleteBookAsync (Guid bookId);
+        
+        
+        Task<(List<Book> books, int totalCount)> GetFilteredBooksAsync(
+            int skip,
+            int take, 
+            string? searchTerm,
+            string? author = null,
+            string? genre = null,
+            string? publisher = null,
+            string? language = null,
+            string? format = null,
+            decimal? minPrice = null,
+            decimal? maxPrice = null,
+            bool? inStock = null,
+            DateTime? publishedAfter = null,
+            DateTime? publishedBefore = null,
+            string? sortBy = null,
+            bool sortDescending = false);
     }
 }
