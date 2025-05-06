@@ -4,20 +4,27 @@ using Backend.DTOs.User;
 using Backend.Entities;
 using Backend.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Runtime.InteropServices;
+using System.Security.Claims;
+using System.Text;
 
 namespace Backend.Services;
 
-public class UserService: IUserService
+public class UserService : IUserService
 {
+    private readonly IConfiguration _configuration;
     private readonly IUserRepository _userRepository;
     private readonly UserManager<User> _userManager;
 
-    public UserService(IUserRepository userRepository, UserManager<User> userManager)
+    public UserService(IUserRepository userRepository, UserManager<User> userManager, IConfiguration configuration)
     {
         _userRepository = userRepository;
         _userManager = userManager;
+        _configuration = configuration;
     }
-    
+
     public async Task<User> RegisterUserAsync(RegisterDTO registerDto)
     {
         if (await _userRepository.UserExistsAsync(registerDto.Email))
@@ -34,7 +41,7 @@ public class UserService: IUserService
             DateJoined = DateTime.Now.ToString("yyyy-MM-dd"),
             UserName = registerDto.Email
         };
-        
+
         return await _userRepository.CreateUserAsync(user, registerDto.Password);
     }
 
@@ -62,23 +69,42 @@ public class UserService: IUserService
     {
         return await _userRepository.LoginAsync(loginDto.Email, loginDto.Password, loginDto.RememberMe);
     }
-    
+
     public async Task<User> GetUserByEmailAsync(string email)
     {
         return await _userManager.FindByEmailAsync(email);
     }
-    
+
     public async Task<string> GenerateTokenAsync(User user)
     {
-        // Generate  token using the Identity API
-        var tokenProvider = _userManager.Options.Tokens.PasswordResetTokenProvider;
-        return await _userManager.GenerateUserTokenAsync(
-            user, 
-            tokenProvider, 
-            "Authentication");
+        // Create claims
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Role, (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? "Regular")
+        };
+
+        // Create token signature
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+
+        // Encrypt the token signature
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        // Create and return the token
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: creds
+        );
+        return new JwtSecurityTokenHandler().WriteToken(token);
+
     }
 
-     public async Task<Guid> GetAdminIdAsync()
+    public async Task<Guid> GetAdminIdAsync()
     {
         return await _userRepository.GetAdminIdAsync();
     }
