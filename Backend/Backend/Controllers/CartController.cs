@@ -7,8 +7,8 @@ namespace Backend.Controllers;
 [Route("api/[controller]")]
 public class CartController: ControllerBase
 {
-    [HttpPost("add-to-cart")]
-    public async Task<IActionResult> AddProductToCart(Guid productId)
+    [HttpPost("add-to-cart/{cartId}")]
+    public async Task<IActionResult> AddProductToCart(Guid cartId, Guid productId)
     {
         return Ok("Success");
     }   
@@ -19,8 +19,8 @@ public class CartController: ControllerBase
         return Ok("Success");
     }  
     
-    [HttpPut("update-to-cart")]
-    public async Task<IActionResult> UpdateCartItems(Guid ProductId)
+    [HttpPut("update-to-cart/{cartId}")]
+    public async Task<IActionResult> UpdateCartItems(Guid cartId)
     {
         return Ok("Success");
     } 
