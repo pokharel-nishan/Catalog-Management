@@ -13,6 +13,8 @@ import {
 
 const BooksPage: React.FC = () => {
   const [selectedGenre, setSelectedGenre] = useState<string>("All Genres");
+  const [selectedRecommendation, setSelectedRecommendation] =
+    useState<string>();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const booksPerPage = 6;
 
@@ -53,17 +55,19 @@ const BooksPage: React.FC = () => {
               {genres.map((genre) => (
                 <li key={genre}>
                   <button
-                    className={`w-full text-left py-2 px-4 rounded ${
-                      selectedGenre === genre
-                        ? "bg-blue-500 text-white"
-                        : "hover:bg-gray-100"
-                    }`}
+                    className={`w-full text-left py-2 px-4 relative rounded overflow-hidden transition-all duration-300 group hover:text-blue-400
+                        ${
+                          selectedGenre === genre
+                            ? "bg-white text-orange-400 border-l-4 border-orange-400"
+                            : "text-gray-700"
+                        }`}
                     onClick={() => {
                       setSelectedGenre(genre);
                       setCurrentPage(1);
                     }}
                   >
-                    {genre}
+                    <span className="absolute left-0 top-0 h-full w-full bg-white scale-x-0 group-hover:scale-x-100  transition-transform origin-left duration-500" />
+                    <span className="relative z-10">{genre}</span>
                   </button>
                 </li>
               ))}
@@ -73,8 +77,20 @@ const BooksPage: React.FC = () => {
             <ul className="space-y-2">
               {recommendations.map((rec) => (
                 <li key={rec}>
-                  <button className="w-full text-left py-2 px-4 rounded hover:bg-gray-100">
-                    {rec}
+                  <button
+                    className={`w-full text-left py-2 px-4 relative rounded overflow-hidden transition-all duration-300 group hover:text-blue-400
+                        ${
+                          selectedRecommendation === rec
+                            ? "bg-white text-orange-400 border-l-4 border-orange-400"
+                            : "text-gray-700"
+                        }`}
+                    onClick={() => {
+                      setSelectedRecommendation(rec);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <span className="absolute left-0 top-0 h-full w-full bg-white scale-x-0 group-hover:scale-x-100  transition-transform origin-left duration-500" />
+                    <span className="relative z-10"> {rec}</span>
                   </button>
                 </li>
               ))}

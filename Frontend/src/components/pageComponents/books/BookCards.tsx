@@ -1,13 +1,32 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import type { Book } from "../../../types/book";
+import { Heart, HeartIcon,  } from "lucide-react"; 
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css"; 
 
 interface BookCardProps {
   book: Book;
 }
 
 const BookCard: React.FC<BookCardProps> = ({ book }) => {
-  // Star rating component
+  const [isLiked, setIsLiked] = useState(false);
+
+  // Function to display a toast message
+  const handleWishlistClick = () => {
+    setIsLiked((prevState) => {
+      const newState = !prevState;
+      if (newState) {
+        // Book added to wishlist
+        toast.success("Book added to wishlist!")
+      }else {
+        // Book removed from wishlist
+        toast.info("Book removed from wishlist.");
+      }
+      return newState;
+    });
+  };
+
   const renderStars = (rating: number) => {
     return (
       <div className="flex items-center">
@@ -31,43 +50,57 @@ const BookCard: React.FC<BookCardProps> = ({ book }) => {
   };
 
   return (
-    <div className="relative flex overflow-hidden">
-    {/* Background Layer */}
-    <div className="absolute inset-0 flex">
-      <div className="w-[20%] bg-gray-50"></div>
-      <div className="w-[80%] bg-white border border-none rounded-lg "></div>
-    </div>
-  
-    {/* Actual content */}
-    <div className="flex w-full relative p-4 z-10">
-      <div className="w-1/3">
-        <img
-          src={book.coverImage}
-          alt={book.title}
-          className="w-full h-44 shadow-lg object-cover rounded"
-        />
+    <div className="relative flex overflow-hidden group transition-shadow duration-300 hover:shadow-lg rounded-lg">
+      {/* Background Layers */}
+      <div className="absolute inset-0 flex">
+        <div className="w-[20%] bg-gray-50" />
+        <div className="w-[80%] bg-white border border-none rounded-lg" />
       </div>
-  
-      <div className="w-2/3 pl-8 flex flex-col p-4">
-        <h1 className="text-xl font-bold mb-2 line-clamp-1">{book.title}</h1>
-        <p className="text-lg text-gray-600 mb-6">By {book.author}</p>
-  
-        <p className="line-clamp-1">{renderStars(book.rating || 4)}</p>
-        <p className="text-xs text-gray-400 mt-4 mb-6 line-clamp-3">
-          {book.description}
-        </p>
-  
-        <div className="mt-auto">
-          <Link to={`/books/${book.id}`} className="block">
-            <button className="bg-orange-50 border border-orange-400 text-orange-400 rounded-2xl py-2 px-4 w-full hover:bg-orange-100 transition-colors text-base">
-              Add To Cart
+
+      {/* Content */}
+      <div className="flex w-full relative p-4 z-10">
+        {/* Book Image */}
+        <div className="w-1/3 overflow-hidden rounded">
+          <img
+            src={book.coverImage}
+            alt={book.title}
+            className="w-full h-44 object-cover rounded transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
+
+        {/* Info */}
+        <div className="w-2/3 pl-8 flex flex-col p-4">
+          <h1 className="text-xl font-bold mb-2 line-clamp-1">{book.title}</h1>
+          <p className="text-lg text-gray-600 mb-4">By {book.author}</p>
+
+          <div className="mb-4">{renderStars(book.rating || 4)}</div>
+
+          <p className="text-xs text-gray-400 line-clamp-3 mb-4">
+            {book.description}
+          </p>
+
+          <div className="mt-auto flex items-center justify-between gap-2">
+            <Link to={`/books/${book.id}`} className="w-full">
+              <button className="bg-orange-50 border border-orange-400 text-orange-400 rounded-2xl py-2 px-4 w-full hover:bg-orange-100 transition-colors text-base">
+                Add To Cart
+              </button>
+            </Link>
+
+        
+            <button
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              onClick={handleWishlistClick} 
+            >
+              {isLiked ? (
+                <HeartIcon className="w-5 h-5 text-orange-400 transition-colors" />
+              ) : (
+                <Heart className="w-5 h-5 text-gray-400 hover:text-orange-400 transition-colors" />
+              )}
             </button>
-          </Link>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  
   );
 };
 
