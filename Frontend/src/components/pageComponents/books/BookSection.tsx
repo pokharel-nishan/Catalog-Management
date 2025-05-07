@@ -12,7 +12,7 @@ const BookSection: React.FC<BookSectionProps> = ({ title, books }) => {
     <section className="mt-8">
       <div className="container mx-auto px-4">
         <h2 className="text-xl font-bold mb-6">{title}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {books.map((book) => (
             <BookCard key={book.id} book={book} />
           ))}

@@ -8,7 +8,7 @@ interface NavLinksProps {
 
 const NavLinks: React.FC<NavLinksProps> = ({ mobile, setIsMobileMenuOpen }) => {
   const links = [
-    { name: 'About', path: '/about' },
+    { name: 'Home', path: '/' },
     { name: 'Books', path: '/books' },
     { name: 'Sales/Announcements', path: '/announcements' },
     { name: 'Contact', path: '/contact' },

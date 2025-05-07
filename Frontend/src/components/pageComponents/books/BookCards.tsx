@@ -58,13 +58,13 @@ const BookCard: React.FC<BookCardProps> = ({ book }) => {
       </div>
 
       {/* Content */}
-      <div className="flex w-full relative p-4 z-10">
+      <div className="flex w-full relative pt-6 z-10">
         {/* Book Image */}
-        <div className="w-1/3 overflow-hidden rounded">
+        <div className="w-1/3 overflow-hidden">
           <img
             src={book.coverImage}
             alt={book.title}
-            className="w-full h-44 object-cover rounded transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </div>
 
