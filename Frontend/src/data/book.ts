@@ -4,23 +4,23 @@ import type { Book } from "../types/book";
 export const books: Book[] = [
   {
     id: '1',
-    title: 'Tentang Kamu',
-    author: 'Tere Liye',
-    coverImage: 'https://images.pexels.com/photos/1765033/pexels-photo-1765033.jpeg?auto=compress&cs=tinysrgb&w=600',
+    title: 'The Frolic of the Beasts',
+    author: 'Yukito Mishima',
+    coverImage: '/books/book1.png',
     rating: 4.5,
     salePercentage: 15,
     price: 19.99,
-    description: 'A heartwarming story about love and personal growth.',
+    description: "The gripping story of an affair gone horribly wrong, from one of Japan's greatest twentieth-century writers Koji, a young student, has fallen hopelessly in love with the beautiful, enigmatic Yuko. But she is married to the literary critic and serial philanderer Ippei. Tormented by desire and anger, Koji is driven to an act of violence that will bind this strange, terrible love triangle together for the rest of their lives. A starkly compelling story of lust, guilt and punishment, The Frolic of the Beasts explores the masks we wear in life, and what happens when they slip. 'One of the greatest avant-garde Japanese writers of the twentieth century' New Yorker",
     category: ['Romance', 'Drama']
   },
   {
     id: '2',
-    title: 'Pergi',
-    author: 'Tere Liye',
-    coverImage: 'https://images.pexels.com/photos/3747139/pexels-photo-3747139.jpeg?auto=compress&cs=tinysrgb&w=600',
+    title: 'Mans Search For Meaning The Classic Tribute to Hope From the Holocaust',
+    author: 'Viktor E. Frankl',
+    coverImage: '/books/book2.png',
     rating: 4.2,
     price: 21.99,
-    description: 'An adventure that takes you across different parts of the world.',
+    description: "Man's Search for Meaning was first published in 1946. Victor Frankl was a leading psychologist in Vienna when he was arrested for being a Jew during the Nazi regime. He survived holocaust and used his experiences to write this book. He propounded the theory that it is Man's constant search for meaning that allows him to survive even the most brutal, the most degrading situations in his life.He said there are only two races in the world, the decent and indecent. They will maintain their innate beliefs, no matter which side they are on. The decent ones will try to help the fellow human beings and the indecent ones will be selfish and serve themselves at the cost to the others",
     category: ['Adventure', 'Fiction']
   },
   {
@@ -101,15 +101,14 @@ export const books: Book[] = [
   },
   {
     id: '10',
-    title: 'Educated',
-    author: 'Tara Westover',
-    coverImage: 'https://images.pexels.com/photos/7034481/pexels-photo-7034481.jpeg?auto=compress&cs=tinysrgb&w=600',
-    rating: 4.9,
-    isComingSoon: true,
-    price: 23.99,
-    description: 'A memoir about a woman who leaves her survivalist family and goes on to earn a PhD.',
-    category: ['Memoir', 'Biography']
-  }
+    title: 'Mans Search For Meaning The Classic Tribute to Hope From the Holocaust',
+    author: 'Viktor E. Frankl',
+    coverImage: '/books/book2.png',
+    rating: 4.2,
+    price: 21.99,
+    description: "Man's Search for Meaning was first published in 1946. Victor Frankl was a leading psychologist in Vienna when he was arrested for being a Jew during the Nazi regime. He survived holocaust and used his experiences to write this book. He propounded the theory that it is Man's constant search for meaning that allows him to survive even the most brutal, the most degrading situations in his life.He said there are only two races in the world, the decent and indecent. They will maintain their innate beliefs, no matter which side they are on. The decent ones will try to help the fellow human beings and the indecent ones will be selfish and serve themselves at the cost to the others",
+    category: ['Adventure', 'Fiction']
+  },
 ];
 
 export const getTopDeals = (): Book[] => {
