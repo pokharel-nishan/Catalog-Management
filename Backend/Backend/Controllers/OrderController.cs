@@ -30,4 +30,23 @@ public class OrderController : ControllerBase
         }
         return BadRequest($"Error: Invalid claim code for order {orderId}!");
     }
+    
+    [HttpPost("confirm-order/{orderId}")]
+    public async Task<IActionResult> AddProductToCart(Guid orderId)
+    {
+        return Ok("Success");
+    }   
+    
+    [HttpDelete("cancel-order/{orderId}")]
+    public async Task<IActionResult> RemoveProdutFromCart(Guid orderId)
+    {
+        return Ok("Success");
+    }  
+    
+    
+    [HttpGet("order-items/{orderId}")]
+    public async Task<IActionResult> CartItems(Guid orderId)
+    {
+        return Ok("Success");
+    } 
 }

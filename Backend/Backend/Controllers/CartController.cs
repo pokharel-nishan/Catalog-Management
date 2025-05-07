@@ -13,8 +13,8 @@ public class CartController: ControllerBase
         return Ok("Success");
     }   
     
-    [HttpDelete("remove-from-cart")]
-    public async Task<IActionResult> RemoveProdutFromCart(Guid ProductId)
+    [HttpDelete("remove-from-cart/{cartId}")]
+    public async Task<IActionResult> RemoveProdutFromCart(Guid cartId)
     {
         return Ok("Success");
     }  
@@ -25,7 +25,7 @@ public class CartController: ControllerBase
         return Ok("Success");
     } 
     
-    [HttpGet("cart-items")]
+    [HttpGet("cart-items/{cartId}")]
     public async Task<IActionResult> CartItems(Guid cartId)
     {
         return Ok("Success");
