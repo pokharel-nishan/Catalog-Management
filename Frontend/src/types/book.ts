@@ -10,4 +10,5 @@ export interface Book {
     price?: number;
     description?: string;
     category?: string[];
+    voters?: number,
   }
