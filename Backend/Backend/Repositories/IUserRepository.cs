@@ -15,5 +15,7 @@ public interface IUserRepository
 
     Task<User> CreateStaffUserAsync(User user, string password);
 
+    Task<List<User>> GetAllStaffUsersAsync();
+
 
 }
