@@ -82,10 +82,14 @@ public class CartController: ControllerBase
     } 
     
     [HttpGet("cart-items")]
-    public async Task<IActionResult> CartItems()
+    public async Task<IActionResult> GetCartItems()
     {
-        return Ok("Success");
-    } 
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        
+        var items = await _cartService.GetCartItemsAsync(userId.Value);
+        return Ok(new { success = true, items });
+    }
     
     
     [HttpPost("clear")]

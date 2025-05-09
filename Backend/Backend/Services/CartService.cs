@@ -1,3 +1,4 @@
+using Backend.DTOs.User;
 using Backend.Entities;
 using Backend.Repositories;
 
@@ -12,6 +13,22 @@ private readonly IBookRepository _bookRepository;
         _cartRepository = cartRepository;
         _bookRepository = bookRepository;
         
+    }
+    
+    public async Task<IEnumerable<CartItemDTO>> GetCartItemsAsync(Guid userId)
+    {
+        var cart = await _cartRepository.GetCartByUserIdAsync(userId);
+        if (cart == null) return Enumerable.Empty<CartItemDTO>();
+
+        var items = await _cartRepository.GetCartItemsAsync(cart.Id);
+        return items.Select(i => new CartItemDTO
+        {
+            BookId = i.BookId,
+            BookTitle = i.Book.Title,
+            Price = i.Book.Price,
+            Quantity = i.Quantity,
+            ImageUrl = i.Book.ImageURL
+        });
     }
     public async Task<Cart> CreateCartForUserAsync(Guid userId)
     {

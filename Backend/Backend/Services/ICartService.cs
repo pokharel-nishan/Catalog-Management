@@ -1,9 +1,12 @@
+using Backend.DTOs.User;
 using Backend.Entities;
 
 namespace Backend.Services;
 
 public interface ICartService
 { 
+    Task<IEnumerable<CartItemDTO>> GetCartItemsAsync(Guid userId);
+    
     Task<Cart> CreateCartForUserAsync(Guid userId);
     
     Task<CartBook> AddBookToCartAsync(Guid userId, Guid bookId);
