@@ -12,4 +12,6 @@ public interface ICartService
 
     Task<bool> RemoveItemFromCartAsync(Guid cartId, Guid bookId);
 
+    Task<bool> ClearCartAsync(Guid cartId);
+
 };

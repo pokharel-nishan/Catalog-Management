@@ -81,11 +81,23 @@ public class CartController: ControllerBase
         }
     } 
     
-    [HttpGet("cart-items/{cartId}")]
-    public async Task<IActionResult> CartItems(Guid cartId)
+    [HttpGet("cart-items")]
+    public async Task<IActionResult> CartItems()
     {
         return Ok("Success");
     } 
+    
+    
+    [HttpPost("clear")]
+    public async Task<IActionResult> ClearCart()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        
+        var success = await _cartService.ClearCartAsync(userId.Value);
+        return success ? Ok(new { success = true }) : BadRequest(new { success = false });
+    }
+    
     
     private Guid? GetUserId()
     {

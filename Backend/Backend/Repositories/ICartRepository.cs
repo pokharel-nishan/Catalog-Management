@@ -12,5 +12,7 @@ public interface ICartRepository
      Task<bool> UpdateCartItemAsync(CartBook cartBook);
      Task<IEnumerable<CartBook>> GetCartItemsAsync(Guid cartId);
      Task<bool> RemoveItemFromCartAsync(Guid cartId, Guid bookId);
+     Task<bool> ClearCartAsync(Guid cartId);
+
 
 }
