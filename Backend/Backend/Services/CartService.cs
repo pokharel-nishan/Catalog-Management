@@ -65,5 +65,21 @@ private readonly IBookRepository _bookRepository;
         return existingCartItem;
     }
 
+    public async Task<bool> UpdateCartItemQuantityAsync(Guid userId, Guid bookId, int newQuantity)
+    {
+        if (newQuantity <= 0)
+        {
+            throw new ArgumentException("Quantity must be greater than 0");
+        }
+
+        var cart = await _cartRepository.GetCartByUserIdAsync(userId);
+        if (cart == null) return false;
+
+        var cartItem = await _cartRepository.GetCartItemAsync(cart.Id, bookId);
+        if (cartItem == null) return false;
+
+        cartItem.Quantity = newQuantity;
+        return await _cartRepository.UpdateCartItemAsync(cartItem);
+    }
 }
 

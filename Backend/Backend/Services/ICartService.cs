@@ -8,4 +8,6 @@ public interface ICartService
     
     Task<CartBook> AddBookToCartAsync(Guid userId, Guid bookId);
 
-}
+    Task<bool> UpdateCartItemQuantityAsync(Guid userId, Guid bookId, int newQuantity);
+
+};

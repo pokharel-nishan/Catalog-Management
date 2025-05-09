@@ -20,17 +20,14 @@ public class CartController: ControllerBase
     [HttpPost("add-to-cart/{bookId}")]
     public async Task<IActionResult> AddTToCart(Guid bookId)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 
-                          User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-    
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-        {
+        var userId = GetUserId();
+        if (userId == null){
             return Unauthorized("Invalid user identification");
         }
         
         try
         {
-            var cartItem = await _cartService.AddBookToCartAsync(userId, bookId);
+            var cartItem = await _cartService.AddBookToCartAsync(userId.Value, bookId);
             return Ok(new { 
                 success = true,
                 message = "Book added to cart",
@@ -63,10 +60,21 @@ public class CartController: ControllerBase
         return Ok("Success");
     }  
     
-    [HttpPut("update-to-cart/{cartId}")]
-    public async Task<IActionResult> UpdateCartItems(Guid cartId)
+    [HttpPut("update-quantity/{bookId}/{newQuantity}")]
+    public async Task<IActionResult> UpdateCartItemQuantity(Guid bookId, int newQuantity)
     {
-        return Ok("Success");
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        
+        try
+        {
+            var success = await _cartService.UpdateCartItemQuantityAsync(userId.Value, bookId, newQuantity);
+            return success ? Ok(new { success = true }) : BadRequest(new { success = false });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
     } 
     
     [HttpGet("cart-items/{cartId}")]
@@ -74,4 +82,11 @@ public class CartController: ControllerBase
     {
         return Ok("Success");
     } 
+    
+    private Guid? GetUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 
+                          User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
 }
