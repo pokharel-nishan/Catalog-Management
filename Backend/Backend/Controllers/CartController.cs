@@ -54,11 +54,15 @@ public class CartController: ControllerBase
         }
     }
     
-    [HttpDelete("remove-from-cart/{cartId}")]
-    public async Task<IActionResult> RemoveProdutFromCart(Guid cartId)
+    [HttpDelete("remove-item/{bookId}")]
+    public async Task<IActionResult> RemoveItemFromCart(Guid bookId)
     {
-        return Ok("Success");
-    }  
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        
+        var success = await _cartService.RemoveItemFromCartAsync(userId.Value, bookId);
+        return success ? Ok(new { success = true }) : BadRequest(new { success = false });
+    }
     
     [HttpPut("update-quantity/{bookId}/{newQuantity}")]
     public async Task<IActionResult> UpdateCartItemQuantity(Guid bookId, int newQuantity)

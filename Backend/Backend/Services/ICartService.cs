@@ -10,4 +10,6 @@ public interface ICartService
 
     Task<bool> UpdateCartItemQuantityAsync(Guid userId, Guid bookId, int newQuantity);
 
+    Task<bool> RemoveItemFromCartAsync(Guid cartId, Guid bookId);
+
 };

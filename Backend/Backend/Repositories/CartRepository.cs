@@ -58,4 +58,15 @@ public class CartRepository: ICartRepository
         _context.CartBooks.Update(cartBook);
         return await _context.SaveChangesAsync() > 0;
     }
+    
+    public async Task<bool> RemoveItemFromCartAsync(Guid cartId, Guid bookId)
+    {
+        var cartItem = await _context.CartBooks
+            .FirstOrDefaultAsync(cb => cb.CartId == cartId && cb.BookId == bookId);
+            
+        if (cartItem == null) return false;
+        
+        _context.CartBooks.Remove(cartItem);
+        return await _context.SaveChangesAsync() > 0;
+    }
 }

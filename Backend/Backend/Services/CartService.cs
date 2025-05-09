@@ -81,5 +81,13 @@ private readonly IBookRepository _bookRepository;
         cartItem.Quantity = newQuantity;
         return await _cartRepository.UpdateCartItemAsync(cartItem);
     }
+    
+    public async Task<bool> RemoveItemFromCartAsync(Guid userId, Guid bookId)
+    {
+        var cart = await _cartRepository.GetCartByUserIdAsync(userId);
+        if (cart == null) return false;
+
+        return await _cartRepository.RemoveItemFromCartAsync(cart.Id, bookId);
+    }
 }
 
