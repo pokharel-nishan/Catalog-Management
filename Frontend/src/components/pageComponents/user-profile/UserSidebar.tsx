@@ -1,33 +1,65 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaBox, FaCog, FaUser } from "react-icons/fa";
+import {
+  User,
+  Package,
+  Heart,
+  Settings,
+  LogOut
+} from "lucide-react";
+import LogoutModal from "../../modals/LogoutModal";
 
 export default function AccLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const tabs = [
-    { href: "/my-account", label: "My Account", icon: <FaUser /> },
-    { href: "/my-orders", label: "My Orders", icon: <FaBox /> },
-    { href: "/wishlists", label: "My Wishlist", icon: <FaBox /> },
-    { href: "/settings", label: "Settings", icon: <FaCog /> },
+    { href: "/my-account", label: "My Account", icon: <User size={18} /> },
+    { href: "/my-orders", label: "My Orders", icon: <Package size={18} /> },
+    { href: "/wishlists", label: "My Wishlist", icon: <Heart size={18} /> },
+    { href: "/settings", label: "Settings", icon: <Settings size={18} /> },
+    {
+      href: "/logout",
+      label: "Logout",
+      icon: <LogOut size={18} className="text-red-500" />,
+      isLogout: true,
+      isDanger: true,
+    },
   ];
-  
+
+  const handleTabClick = (tab: typeof tabs[number]) => {
+    if (tab.isLogout) {
+      setIsLogoutModalOpen(true);
+    }
+  };
+
   return (
     <section className="container mx-auto grid grid-cols-1 lg:grid-cols-6 gap-4 lg:gap-8 p-4 min-h-screen">
       <div className="col-span-1 lg:col-span-1 space-y-2 shadow rounded-2xl p-2 lg:p-4 bg-white border">
         <div className="flex flex-row lg:flex-col lg:space-y-4">
-          {tabs.map(({ href, label, icon }) => {
+          {tabs.map(({ href, label, icon, isLogout, isDanger }) => {
             const isActive = location.pathname === href;
-            return (
+            const tabContent = (
+              <div
+                className={`flex items-center space-x-2 px-4 py-2 cursor-pointer rounded-lg text-sm ${
+                  isDanger
+                    ? "text-red-500 hover:bg-red-50"
+                    : isActive
+                    ? "bg-primary text-white"
+                    : "text-primary"
+                }`}
+                onClick={() => isLogout && handleTabClick({ href, label, icon, isLogout, isDanger })}
+              >
+                {icon}
+                <span>{label}</span>
+              </div>
+            );
+
+            return isLogout ? (
+              <div key={href}>{tabContent}</div>
+            ) : (
               <Link key={href} to={href}>
-                <div
-                  className={`flex items-center space-x-2 px-4 py-2 cursor-pointer rounded-lg text-sm ${
-                    isActive ? "bg-primary text-white" : "text-primary"
-                  }`}
-                >
-                  {icon}
-                  <span>{label}</span>
-                </div>
+                {tabContent}
               </Link>
             );
           })}
@@ -37,6 +69,9 @@ export default function AccLayout({ children }: { children: React.ReactNode }) {
       <div className="col-span-1 lg:col-span-5 p-2 md:p-4 lg:px-6 bg-white rounded-2xl shadow border">
         {children}
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutModal isOpen={isLogoutModalOpen} closeModal={() => setIsLogoutModalOpen(false)} />
     </section>
   );
 }
