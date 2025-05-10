@@ -47,20 +47,16 @@ public class OrderController : ControllerBase
             ? Ok(new { success = true, message = "Order confirmed" })
             : BadRequest(new { success = false, message = "Order confirmation failed" });
     }
-
-    [HttpPost("processClaimCode/{orderId}")]
-    //[Authorize(Roles = "Staff")]
-    public async Task<IActionResult> ProcessClaimCodeAsync(Guid orderId, string claimCode)
-    {
-        var isClaimCodeValid = await _orderService.ProcessClaimCodeAsync(orderId, claimCode);
-
-        if (!isClaimCodeValid)
-        {
-            return Ok($"Success: Order {orderId} processed successfully!");
-        }
-        return BadRequest($"Error: Invalid claim code for order {orderId}!");
-    }
     
+    [HttpPost("complete-order/{orderId}")]
+    // [Authorize(Roles = "Staff")]
+    public async Task<IActionResult> CompleteOrder(Guid orderId, [FromBody] CompleteOrderRequest request)
+    {
+        var success = await _orderService.CompleteOrderAsync(orderId, request.ClaimCode);
+        return success 
+            ? Ok(new { success = true, message = "Order completed" })
+            : BadRequest(new { success = false, message = "Invalid claim code or order state" });
+    }
     
     [HttpPost("cancel-order/{orderId}")]
     public async Task<IActionResult> CancelOrder(Guid orderId)
@@ -86,4 +82,6 @@ public class OrderController : ControllerBase
                           User.FindFirstValue(JwtRegisteredClaimNames.Sub);
         return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
     }
+    public record CompleteOrderRequest(string ClaimCode);
+
 }
