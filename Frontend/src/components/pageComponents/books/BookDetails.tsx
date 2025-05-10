@@ -4,14 +4,19 @@ import { Star, ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { books } from '../../../data/book';
 
-const BookDetailPage: React.FC = () => {
+const BookDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = React.useState(false);
+  
+  // Fallback to first book if ID not found
   const book = books.find(b => b.id === id) || books[0];
 
   const handleBuyNow = () => {
+    setIsLoading(true);
     toast.success('Processing your order...');
     setTimeout(() => {
+      setIsLoading(false);
       navigate('/success');
     }, 1500);
   };
@@ -19,13 +24,17 @@ const BookDetailPage: React.FC = () => {
   const handleAddToCart = () => {
     toast.success('Added to cart!');
   };
+  
+  const handleSeeComment = () => {
+    toast.success('Comments loaded!');
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row gap-8">
         {/* Book Cover */}
         <div className="md:w-1/3">
-          <div className="aspect-[2/3] overflow-hidden rounded-lg shadow-lg">
+          <div className="aspect-[2/3] overflow-hidden rounded-lg shadow-lg bg-white">
             <img
               src={book.coverImage}
               alt={book.title}
@@ -36,14 +45,15 @@ const BookDetailPage: React.FC = () => {
           <div className="mt-6 space-y-4">
             <button
               onClick={handleBuyNow}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full py-3 bg-orange-400 text-white rounded-lg hover:bg-orange-500 transition-colors flex items-center justify-center gap-2"
             >
               <ShoppingCart size={20} />
-              Buy Now
+              {isLoading ? 'Processing...' : 'Buy Now'}
             </button>
             <button
               onClick={handleAddToCart}
-              className="w-full py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+              className="w-full py-3 border border-orange-400 text-orange-400 rounded-lg hover:bg-orange-50 transition-colors"
             >
               Add To Cart
             </button>
@@ -52,15 +62,15 @@ const BookDetailPage: React.FC = () => {
 
         {/* Book Details */}
         <div className="md:w-2/3">
-          <h1 className="text-4xl font-bold mb-4">{book.title}</h1>
-          <p className="text-xl text-gray-600 mb-4">By {book.author}</p>
+          <h1 className="text-4xl font-bold mb-2">{book.title}</h1>
+          <p className="text-xl text-gray-600 mb-2">By {book.author}</p>
           
-          <div className="flex items-center mb-6">
+          <div className="flex items-center mb-4">
             <div className="flex">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  size={24}
+                  size={20}
                   className={`${
                     i < Math.floor(book.rating)
                       ? 'text-yellow-400 fill-yellow-400'
@@ -69,47 +79,59 @@ const BookDetailPage: React.FC = () => {
                 />
               ))}
             </div>
-            <span className="ml-2 text-gray-600">
-              {book.rating} ({Math.floor(Math.random() * 1000)} reviews)
-            </span>
+          </div>
+          
+          <div className="flex items-center gap-6 mb-8">
+            <span className="text-gray-600">{book.author}</span>
+            <span className="text-gray-600">{book.voters}</span>
           </div>
 
-          <div className="prose max-w-none">
-            <h2 className="text-2xl font-bold mb-4">Overview</h2>
-            <p className="text-gray-700 mb-6">{book.description}</p>
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-2xl font-bold mb-4">Overview</h2>
+              <p className="text-gray-700">{book.description}</p>
+            </section>
 
-            <h2 className="text-2xl font-bold mb-4">Category</h2>
-            <div className="flex flex-wrap gap-2 mb-6">
-              {book.category?.map(cat => (
-                <span key={cat} className="px-4 py-2 bg-gray-100 rounded-full">
-                  {cat}
-                </span>
-              ))}
-            </div>
+            <section>
+              <h2 className="text-2xl font-bold mb-4">Category</h2>
+              <div className="flex flex-wrap gap-2">
+                {book.category?.map(cat => (
+                  <span key={cat} className="px-4 py-2 bg-gray-100 rounded-full text-gray-700">
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            </section>
 
-            <h2 className="text-2xl font-bold mb-4">Additional Information</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-semibold">Author</h3>
-                <p className="text-gray-600">{book.author}</p>
+            <section>
+              <h2 className="text-2xl font-bold mb-4">Additional Information</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+                <div>
+                  <h3 className="font-semibold text-gray-600">Author</h3>
+                  <p>{book.author}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-600">Published In</h3>
+                  <p>{book.publishedDate}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-600">Genre</h3>
+                  <p>{book.genre}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-600">Total Pages</h3>
+                  <p>{book.pages}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-600">Location</h3>
+                  <p>{book.location}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold">Published In</h3>
-                <p className="text-gray-600">2023</p>
-              </div>
-              <div>
-                <h3 className="font-semibold">Genre</h3>
-                <p className="text-gray-600">{book.category?.join(', ')}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold">Total Pages</h3>
-                <p className="text-gray-600">210</p>
-              </div>
-            </div>
+            </section>
           </div>
 
           <button
-            onClick={() => toast.success('Comments loaded!')}
+            onClick={handleSeeComment}
             className="mt-8 w-full py-3 text-center border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             See Comment

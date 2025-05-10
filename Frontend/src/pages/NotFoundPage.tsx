@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const NotFoundPage: React.FC = () => {
   return (
-    <div className="container mx-auto px-4 py-16 flex flex-col md:flex-row items-center justify-center gap-12">
+    <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-center gap-12">
       <div className="md:w-1/2 max-w-xl">
         <img
           src="/errorPage.png"
