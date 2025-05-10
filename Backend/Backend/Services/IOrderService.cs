@@ -11,6 +11,7 @@ namespace Backend.Services
         Task<bool> CancelOrderAsync(Guid orderId, Guid userId);
         Task<bool> CompleteOrderAsync(Guid orderId, string claimCode);
         Task<OrderDTO> GetOrderDetailsAsync(Guid orderId);
+        Task<IEnumerable<OrderDTO>> GetUserOrdersAsync(Guid userId);
 
 
     }

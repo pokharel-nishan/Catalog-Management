@@ -92,6 +92,16 @@ public class OrderController : ControllerBase
         return Ok(new { success = true, order });
     }
     
+    [HttpGet("user-orders")]
+    public async Task<IActionResult> GetUserOrders()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var orders = await _orderService.GetUserOrdersAsync(userId.Value);
+        return Ok(new { success = true, orders });
+    }
+    
     private Guid? GetUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 

@@ -278,5 +278,24 @@ namespace Backend.Services
                 }).ToList()
             };
         }
+        
+        public async Task<IEnumerable<OrderDTO>> GetUserOrdersAsync(Guid userId)
+        {
+            var orders = await _orderRepository.GetUserOrdersAsync(userId);
+            return orders.Select(o => new OrderDTO
+            {
+                OrderId = o.OrderId,
+                OrderDate = o.OrderDate,
+                Status = o.Status.ToString(),
+                TotalPrice = o.TotalPrice,
+                Items = o.OrderBooks.Select(ob => new OrderItemDTO
+                {
+                    BookId = ob.BookId,
+                    Title = ob.Book.Title,
+                    Quantity = ob.BookQuantity,
+                    Subtotal = ob.BookTotal
+                }).ToList()
+            });
+        }
     }
 }

@@ -39,5 +39,15 @@ namespace Backend.Repositories
                 .ThenInclude(ob => ob.Book)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
         }
+        
+        public async Task<IEnumerable<Order>> GetUserOrdersAsync(Guid userId)
+        {
+            return await _context.Orders
+                .Where(o => o.UserId == userId)
+                .Include(o => o.OrderBooks)
+                .ThenInclude(ob => ob.Book)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
     }
 }
