@@ -1,34 +1,37 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Search, ShoppingCart, Menu, X } from "lucide-react";
-import NavLinks from "./NavbarLinks";
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Search, ShoppingCart, Menu, X } from 'lucide-react';
+import NavLinks from './NavbarLinks';
+import CartDrawer from '../pageComponents/cart/CartDrawer';
+import { useCart } from '../pageComponents/cart/CartContext';
 
 const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { items, setIsCartOpen } = useCart();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
   return (
     <header
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-        isScrolled ? "bg-white shadow-md" : "bg-white"
+        isScrolled ? 'bg-white shadow-md' : 'bg-white'
       }`}
     >
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Link to="/" className="mr-8">
-              <img
+            <img
                 src="/logo.png"
                 alt="logo"
                 className="w-12 h-12"
@@ -48,20 +51,19 @@ const Header: React.FC = () => {
                 placeholder="Search for books..."
                 className="pl-10 pr-4 py-2 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all w-64"
               />
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={18}
-              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             </div>
-            <Link to="/cart" className="relative">
-              <ShoppingCart
-                className="text-gray-700 hover:text-blue-600 transition-colors"
-                size={24}
-              />
-              <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                0
-              </span>
-            </Link>
+            <button 
+              onClick={() => setIsCartOpen(true)}
+              className="relative"
+            >
+              <ShoppingCart className="text-gray-700 hover:text-blue-600 transition-colors" size={24} />
+              {items.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {items.length}
+                </span>
+              )}
+            </button>
 
             {/* Mobile Menu Button */}
             <button
@@ -81,10 +83,7 @@ const Header: React.FC = () => {
               placeholder="Search for books..."
               className="pl-10 pr-4 py-2 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all w-full"
             />
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              size={18}
-            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           </div>
         </div>
 
@@ -97,6 +96,8 @@ const Header: React.FC = () => {
           </div>
         )}
       </div>
+
+      <CartDrawer />
     </header>
   );
 };
