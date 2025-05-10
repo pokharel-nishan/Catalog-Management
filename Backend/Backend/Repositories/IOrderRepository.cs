@@ -1,4 +1,5 @@
-﻿using Backend.Entities;
+﻿using Backend.DTOs.Common;
+using Backend.Entities;
 
 namespace Backend.Repositories
 {
@@ -10,6 +11,6 @@ namespace Backend.Repositories
         Task<Order> GetOrderWithDetailsAsync(Guid orderId);
         Task<IEnumerable<Order>> GetUserOrdersAsync(Guid userId);
         Task<IEnumerable<Order>> GetAllOrdersAsync();
-
+        Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status);
     }
 }

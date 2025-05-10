@@ -305,6 +305,12 @@ namespace Backend.Services
             var orders = await _orderRepository.GetAllOrdersAsync();
             return orders.Select(o => MapOrderToDto(o));
         }
+        
+        public async Task<IEnumerable<OrderDTO>> GetOrdersByStatusAsync(OrderStatus status)
+        {
+            var orders = await _orderRepository.GetOrdersByStatusAsync(status);
+            return orders.Select(o => MapOrderToDto(o));
+        }
 
         private OrderDTO MapOrderToDto(Order order)
         {

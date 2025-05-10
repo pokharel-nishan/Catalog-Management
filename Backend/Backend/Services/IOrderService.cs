@@ -13,6 +13,7 @@ namespace Backend.Services
         Task<OrderDTO> GetOrderDetailsAsync(Guid orderId);
         Task<IEnumerable<OrderDTO>> GetUserOrdersAsync(Guid userId);
         Task<IEnumerable<OrderDTO>> GetAllOrdersAsync();
+        Task<IEnumerable<OrderDTO>> GetOrdersByStatusAsync(OrderStatus status);
 
 
     }

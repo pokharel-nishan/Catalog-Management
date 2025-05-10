@@ -59,5 +59,16 @@ namespace Backend.Repositories
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
         }
+        
+        public async Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status)
+        {
+            return await _context.Orders
+                .Where(o => o.Status == status)
+                .Include(o => o.User)
+                .Include(o => o.OrderBooks)
+                .ThenInclude(ob => ob.Book)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
     }
 }
