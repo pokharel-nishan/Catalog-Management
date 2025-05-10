@@ -36,6 +36,8 @@ public class Book
     
     public int Stock { get; set; }
     
+    public string ImageURL { get; set; }
+    
     [Range(0, 1)]
     public decimal Discount { get; set; }
     public DateTime? DiscountStartDate { get; set; }

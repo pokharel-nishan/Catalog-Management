@@ -38,4 +38,6 @@ public class Order
     
     public virtual Cart Cart { get; set; }
     public virtual User User { get; set; }
+    public virtual ICollection<OrderBook> OrderBooks { get; set; }
+
 }
