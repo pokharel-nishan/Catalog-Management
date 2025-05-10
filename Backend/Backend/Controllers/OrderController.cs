@@ -4,6 +4,7 @@ using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Backend.Controllers;
 
@@ -17,6 +18,24 @@ public class OrderController : ControllerBase
     {
         _orderService = orderService;
     }
+
+    [HttpPost("checkout")]
+    public async Task<IActionResult> Checkout()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var order = await _orderService.CreateOrderFromCartAsync(userId.Value);
+        if (order == null)
+            return BadRequest(new { success = false, message = "Cannot checkout with empty cart" });
+
+        return Ok(new { 
+            success = true, 
+            message = "Order created and pending confirmation",
+            orderId = order.OrderId
+        });
+    }
+
 
     [HttpPost("processClaimCode/{orderId}")]
     //[Authorize(Roles = "Staff")]
@@ -48,5 +67,12 @@ public class OrderController : ControllerBase
     public async Task<IActionResult> CartItems(Guid orderId)
     {
         return Ok("Success");
-    } 
+    }
+    
+    private Guid? GetUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 
+                          User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
 }

@@ -12,12 +12,14 @@ namespace Backend.Services
         private IOrderBookRepository _orderBookRepository;
         private IUserRepository _userRepository;
         private EmailService _emailService;
-        public OrderService(IOrderRepository orderRepository, IOrderBookRepository orderBookRepository, IUserRepository userRepository, EmailService emailService)
+        private ICartRepository _cartRepository;
+        public OrderService(IOrderRepository orderRepository, IOrderBookRepository orderBookRepository, IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository)
         {
             _orderRepository = orderRepository;
             _emailService = emailService;
             _userRepository = userRepository;
             _orderBookRepository = orderBookRepository;
+            _cartRepository = cartRepository;
         }
 
         public async Task<bool> ProcessClaimCodeAsync(Guid orderId, string claimCode)
@@ -144,6 +146,42 @@ namespace Backend.Services
             {
                 Console.WriteLine($"Error sending order cancellation email: {ex.Message}");
             }
+        }
+        
+        public async Task<Order> CreateOrderFromCartAsync(Guid userId)
+        {
+            var cart = await _cartRepository.GetCartByUserIdAsync(userId);
+            if (cart == null || !(await _cartRepository.GetCartItemsAsync(cart.Id)).Any())
+                return null;
+
+            var order = new Order
+            {
+                UserId = userId,
+                CartId = cart.Id,
+                OrderDate = DateTime.UtcNow,
+                TotalQuantity = cart.TotalQuantity,
+                TotalPrice = cart.TotalPrice,
+                Status = OrderStatus.Pending,
+                ClaimCode = Guid.NewGuid().ToString().Substring(0, 10).ToUpper()
+            };
+
+            var createdOrder = await _orderRepository.CreateOrderAsync(order);
+
+            var cartItems = await _cartRepository.GetCartItemsAsync(cart.Id);
+            foreach (var cartItem in cartItems)
+            {
+                var discountedPrice = cartItem.Book.Price * (1 - cartItem.Book.Discount);
+                await _orderBookRepository.AddOrderBookAsync(new OrderBook
+                {
+                    OrderId = createdOrder.OrderId,
+                    BookId = cartItem.BookId,
+                    BookQuantity = cartItem.Quantity,
+                    BookTotal = discountedPrice * cartItem.Quantity
+                });
+            }
+
+            await _cartRepository.ClearCartAsync(cart.Id);
+            return createdOrder;
         }
     }
 }

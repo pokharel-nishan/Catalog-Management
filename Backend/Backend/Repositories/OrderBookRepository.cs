@@ -21,5 +21,11 @@ namespace Backend.Repositories
 
             return orderBooks;
         }
+
+        public async Task AddOrderBookAsync(OrderBook orderBook)
+        {
+            await _context.OrderBooks.AddAsync(orderBook);
+            await _context.SaveChangesAsync();
+        }
     }
 }

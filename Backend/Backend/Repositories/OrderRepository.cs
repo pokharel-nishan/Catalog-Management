@@ -15,5 +15,12 @@ namespace Backend.Repositories
         {
             return await _context.Orders.FindAsync(orderId);
         }
+        
+        public async Task<Order> CreateOrderAsync(Order order)
+        {
+            await _context.Orders.AddAsync(order);
+            await _context.SaveChangesAsync();
+            return order;
+        }
     }
 }
