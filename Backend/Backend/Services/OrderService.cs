@@ -3,6 +3,7 @@ using Backend.Repositories;
 using Backend.Services.Email;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using System.Text;
+using Backend.DTOs.Common;
 
 namespace Backend.Services
 {
@@ -250,6 +251,32 @@ namespace Backend.Services
             var success = await _orderRepository.UpdateOrderAsync(order);
             if (success)  SendOrderCompletionMail(order);
             return success;
+        }
+        
+        public async Task<OrderDTO> GetOrderDetailsAsync(Guid orderId)
+        {
+            var order = await _orderRepository.GetOrderWithDetailsAsync(orderId);
+            if (order == null) return null;
+
+            return new OrderDTO
+            {
+                OrderId = order.OrderId,
+                OrderDate = order.OrderDate,
+                Status = order.Status.ToString(),
+                TotalPrice = order.TotalPrice,
+                ClaimCode = order.ClaimCode,
+                UserId = order.UserId,
+                Items = order.OrderBooks.Select(ob => new OrderItemDTO
+                {
+                    BookId = ob.BookId,
+                    Title = ob.Book.Title,
+                    ImageUrl = ob.Book.ImageURL,
+                    Quantity = ob.BookQuantity,
+                    UnitPrice = ob.BookTotal / ob.BookQuantity,
+                    Discount = 1 - (ob.BookTotal / (ob.BookQuantity * ob.Book.Price)),
+                    Subtotal = ob.BookTotal
+                }).ToList()
+            };
         }
     }
 }

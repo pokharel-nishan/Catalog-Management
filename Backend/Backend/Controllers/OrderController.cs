@@ -70,10 +70,26 @@ public class OrderController : ControllerBase
             : BadRequest(new { success = false, message = "Order cancellation failed" });
     }
     
-    [HttpGet("order-items/{orderId}")]
-    public async Task<IActionResult> CartItems(Guid orderId)
+    [HttpGet("{orderId}")]
+    public async Task<IActionResult> GetOrderDetails(Guid orderId)
     {
-        return Ok("Success");
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var order = await _orderService.GetOrderDetailsAsync(orderId);
+        if (order == null) return NotFound();
+
+        if (!User.IsInRole("Admin") && !User.IsInRole("Staff") && order.UserId != userId.Value)
+        {
+            return StatusCode(403, new { 
+                success = false, 
+                message = "You don't have permission to view this order",
+                requiredRoles = new[] { "Admin", "Staff" },
+                isOwner = order.UserId == userId.Value,
+            });
+        }
+
+        return Ok(new { success = true, order });
     }
     
     private Guid? GetUserId()

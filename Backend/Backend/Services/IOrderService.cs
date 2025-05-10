@@ -1,4 +1,5 @@
-﻿using Backend.Entities;
+﻿using Backend.DTOs.Common;
+using Backend.Entities;
 
 namespace Backend.Services
 {
@@ -9,6 +10,7 @@ namespace Backend.Services
         Task<bool> ConfirmOrderAsync(Guid orderId, Guid userId);
         Task<bool> CancelOrderAsync(Guid orderId, Guid userId);
         Task<bool> CompleteOrderAsync(Guid orderId, string claimCode);
+        Task<OrderDTO> GetOrderDetailsAsync(Guid orderId);
 
 
     }

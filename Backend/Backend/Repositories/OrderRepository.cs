@@ -1,5 +1,6 @@
 ﻿using Backend.Entities;
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Repositories
 {
@@ -27,6 +28,16 @@ namespace Backend.Repositories
         {
             _context.Orders.Update(order);
             return await _context.SaveChangesAsync() > 0;
+        }
+        
+        public async Task<Order> GetOrderWithDetailsAsync(Guid orderId)
+        {
+            return await _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.Cart)
+                .Include(o => o.OrderBooks)
+                .ThenInclude(ob => ob.Book)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
         }
     }
 }
