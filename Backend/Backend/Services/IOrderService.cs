@@ -12,6 +12,7 @@ namespace Backend.Services
         Task<bool> CompleteOrderAsync(Guid orderId, string claimCode);
         Task<OrderDTO> GetOrderDetailsAsync(Guid orderId);
         Task<IEnumerable<OrderDTO>> GetUserOrdersAsync(Guid userId);
+        Task<IEnumerable<OrderDTO>> GetAllOrdersAsync();
 
 
     }

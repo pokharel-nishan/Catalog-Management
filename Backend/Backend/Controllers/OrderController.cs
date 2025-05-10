@@ -102,6 +102,14 @@ public class OrderController : ControllerBase
         return Ok(new { success = true, orders });
     }
     
+    [HttpGet("admin/all-orders")]
+    // [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllOrders()
+    {
+        var orders = await _orderService.GetAllOrdersAsync();
+        return Ok(new { success = true, orders });
+    }
+    
     private Guid? GetUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 

@@ -14,7 +14,9 @@ namespace Backend.Services
         private IUserRepository _userRepository;
         private EmailService _emailService;
         private ICartRepository _cartRepository;
-        public OrderService(IOrderRepository orderRepository, IOrderBookRepository orderBookRepository, IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository)
+
+        public OrderService(IOrderRepository orderRepository, IOrderBookRepository orderBookRepository,
+            IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository)
         {
             _orderRepository = orderRepository;
             _emailService = emailService;
@@ -33,10 +35,10 @@ namespace Backend.Services
                 // Build the invoice
                 // Order Details
                 StringBuilder emailBody = new StringBuilder();
-                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>");  // Header
-                emailBody.AppendLine($"<p><strong>Claim Code:</strong> {order.ClaimCode}</p>");  // Claim Code
-                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>");  // Order Date
-                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>");  // Order Status
+                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>"); // Header
+                emailBody.AppendLine($"<p><strong>Claim Code:</strong> {order.ClaimCode}</p>"); // Claim Code
+                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>"); // Order Date
+                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>"); // Order Status
 
                 emailBody.AppendLine($"<h3>Order Details:</h3>");
 
@@ -50,11 +52,11 @@ namespace Backend.Services
                     var discountedBookPrice = unitPrice * (1 - bookDiscount);
                     var subtotal = discountedBookPrice * quantity;
 
-                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>");  // Book Title
-                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>");  // Quantity
-                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>");  // Unit Price
-                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>");  // Book Discount (Individual)
-                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>");  // Book Subtotal
+                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>"); // Book Title
+                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>"); // Quantity
+                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>"); // Unit Price
+                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>"); // Book Discount (Individual)
+                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>"); // Book Subtotal
                 }
 
                 // Total Quantity, Total Discount, Total Price
@@ -72,7 +74,7 @@ namespace Backend.Services
                 Console.WriteLine($"Error sending order confirmation email: {ex.Message}");
             }
         }
-        
+
         private async void SendOrderCompletionMail(Order order)
         {
             try
@@ -83,9 +85,9 @@ namespace Backend.Services
                 // Build the invoice
                 // Order Details
                 StringBuilder emailBody = new StringBuilder();
-                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>");  // Header
-                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>");  // Order Date
-                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>");  // Order Status
+                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>"); // Header
+                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>"); // Order Date
+                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>"); // Order Status
 
                 emailBody.AppendLine($"<h3>Order Details:</h3>");
 
@@ -99,11 +101,11 @@ namespace Backend.Services
                     var discountedBookPrice = unitPrice * (1 - bookDiscount);
                     var subtotal = discountedBookPrice * quantity;
 
-                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>");  // Book Title
-                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>");  // Quantity
-                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>");  // Unit Price
-                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>");  // Book Discount (Individual)
-                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>");  // Book Subtotal
+                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>"); // Book Title
+                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>"); // Quantity
+                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>"); // Unit Price
+                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>"); // Book Discount (Individual)
+                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>"); // Book Subtotal
                 }
 
                 // Total Quantity, Total Discount, Total Price
@@ -121,7 +123,7 @@ namespace Backend.Services
                 Console.WriteLine($"Error sending order confirmation email: {ex.Message}");
             }
         }
-        
+
         private async Task SendOrderCancellationEmail(Order order)
         {
             try
@@ -132,10 +134,10 @@ namespace Backend.Services
                 // Build the invoice
                 // Order Details
                 StringBuilder emailBody = new StringBuilder();
-                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>");  // Header
-                emailBody.AppendLine($"<p><strong>Claim Code:</strong> {order.ClaimCode}</p>");  // Claim Code
-                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>");  // Order Date
-                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>");  // Order Status
+                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>"); // Header
+                emailBody.AppendLine($"<p><strong>Claim Code:</strong> {order.ClaimCode}</p>"); // Claim Code
+                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>"); // Order Date
+                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>"); // Order Status
 
                 emailBody.AppendLine($"<h3>Order Details:</h3>");
 
@@ -149,11 +151,11 @@ namespace Backend.Services
                     var discountedBookPrice = unitPrice * (1 - bookDiscount);
                     var subtotal = discountedBookPrice * quantity;
 
-                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>");  // Book Title
-                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>");  // Quantity
-                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>");  // Unit Price
-                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>");  // Book Discount (Individual)
-                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>");  // Book Subtotal
+                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>"); // Book Title
+                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>"); // Quantity
+                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>"); // Unit Price
+                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>"); // Book Discount (Individual)
+                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>"); // Book Subtotal
                 }
 
                 // Total Quantity, Total Discount, Total Price
@@ -178,7 +180,7 @@ namespace Backend.Services
                 Console.WriteLine($"Error sending order cancellation email: {ex.Message}");
             }
         }
-        
+
         public async Task<Order> CreateOrderFromCartAsync(Guid userId)
         {
             var cart = await _cartRepository.GetCartByUserIdAsync(userId);
@@ -214,7 +216,7 @@ namespace Backend.Services
             await _cartRepository.ClearCartAsync(cart.Id);
             return createdOrder;
         }
-        
+
         public async Task<bool> ConfirmOrderAsync(Guid orderId, Guid userId)
         {
             var order = await _orderRepository.GetOrderByIdAsync(orderId);
@@ -222,16 +224,16 @@ namespace Backend.Services
                 return false;
 
             order.Status = OrderStatus.Ongoing;
-        
+
             var success = await _orderRepository.UpdateOrderAsync(order);
             if (success) SendOrderConfirmationMail(order);
             return success;
         }
-        
+
         public async Task<bool> CancelOrderAsync(Guid orderId, Guid userId)
         {
             var order = await _orderRepository.GetOrderByIdAsync(orderId);
-            if (order == null || order.UserId != userId || 
+            if (order == null || order.UserId != userId ||
                 (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Ongoing))
                 return false;
 
@@ -240,7 +242,7 @@ namespace Backend.Services
             if (success) await SendOrderCancellationEmail(order);
             return success;
         }
-        
+
         public async Task<bool> CompleteOrderAsync(Guid orderId, string claimCode)
         {
             var order = await _orderRepository.GetOrderByIdAsync(orderId);
@@ -249,10 +251,10 @@ namespace Backend.Services
 
             order.Status = OrderStatus.Completed;
             var success = await _orderRepository.UpdateOrderAsync(order);
-            if (success)  SendOrderCompletionMail(order);
+            if (success) SendOrderCompletionMail(order);
             return success;
         }
-        
+
         public async Task<OrderDTO> GetOrderDetailsAsync(Guid orderId)
         {
             var order = await _orderRepository.GetOrderWithDetailsAsync(orderId);
@@ -278,7 +280,7 @@ namespace Backend.Services
                 }).ToList()
             };
         }
-        
+
         public async Task<IEnumerable<OrderDTO>> GetUserOrdersAsync(Guid userId)
         {
             var orders = await _orderRepository.GetUserOrdersAsync(userId);
@@ -296,6 +298,32 @@ namespace Backend.Services
                     Subtotal = ob.BookTotal
                 }).ToList()
             });
+        }
+
+        public async Task<IEnumerable<OrderDTO>> GetAllOrdersAsync()
+        {
+            var orders = await _orderRepository.GetAllOrdersAsync();
+            return orders.Select(o => MapOrderToDto(o));
+        }
+
+        private OrderDTO MapOrderToDto(Order order)
+        {
+            return new OrderDTO
+            {
+                OrderId = order.OrderId,
+                UserId = order.UserId,
+                OrderDate = order.OrderDate,
+                Status = order.Status.ToString(),
+                TotalPrice = order.TotalPrice,
+                ClaimCode = order.ClaimCode,
+                Items = order.OrderBooks.Select(ob => new OrderItemDTO
+                {
+                    BookId = ob.BookId,
+                    Title = ob.Book.Title,
+                    Quantity = ob.BookQuantity,
+                    Subtotal = ob.BookTotal
+                }).ToList()
+            };
         }
     }
 }

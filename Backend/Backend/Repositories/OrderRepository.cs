@@ -49,5 +49,15 @@ namespace Backend.Repositories
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
         }
+        
+        public async Task<IEnumerable<Order>> GetAllOrdersAsync()
+        {
+            return await _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.OrderBooks)
+                .ThenInclude(ob => ob.Book)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
     }
 }
