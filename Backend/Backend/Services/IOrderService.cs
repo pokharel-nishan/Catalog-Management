@@ -8,6 +8,7 @@ namespace Backend.Services
         Task<Order> CreateOrderFromCartAsync(Guid userId);
 
         Task<bool> ConfirmOrderAsync(Guid orderId, Guid userId);
+        Task<bool> CancelOrderAsync(Guid orderId, Guid userId);
 
     }
 }

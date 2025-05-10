@@ -36,7 +36,7 @@ public class OrderController : ControllerBase
         });
     }
 
-    [HttpPost("confirm/{orderId}")]
+    [HttpPost("confirm-order/{orderId}")]
     public async Task<IActionResult> ConfirmOrder(Guid orderId)
     {
         var userId = GetUserId();
@@ -61,18 +61,18 @@ public class OrderController : ControllerBase
         return BadRequest($"Error: Invalid claim code for order {orderId}!");
     }
     
-    [HttpPost("confirm-order/{orderId}")]
-    public async Task<IActionResult> AddProductToCart(Guid orderId)
-    {
-        return Ok("Success");
-    }   
     
-    [HttpDelete("cancel-order/{orderId}")]
-    public async Task<IActionResult> RemoveProdutFromCart(Guid orderId)
+    [HttpPost("cancel-order/{orderId}")]
+    public async Task<IActionResult> CancelOrder(Guid orderId)
     {
-        return Ok("Success");
-    }  
-    
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var success = await _orderService.CancelOrderAsync(orderId, userId.Value);
+        return success 
+            ? Ok(new { success = true, message = "Order cancelled" })
+            : BadRequest(new { success = false, message = "Order cancellation failed" });
+    }
     
     [HttpGet("order-items/{orderId}")]
     public async Task<IActionResult> CartItems(Guid orderId)

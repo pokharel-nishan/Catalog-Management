@@ -196,5 +196,18 @@ namespace Backend.Services
             if (success) SendOrderConfirmationMail(order);
             return success;
         }
+        
+        public async Task<bool> CancelOrderAsync(Guid orderId, Guid userId)
+        {
+            var order = await _orderRepository.GetOrderByIdAsync(orderId);
+            if (order == null || order.UserId != userId || 
+                (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Ongoing))
+                return false;
+
+            order.Status = OrderStatus.Cancelled;
+            var success = await _orderRepository.UpdateOrderAsync(order);
+            if (success) await SendOrderCancellationEmail(order);
+            return success;
+        }
     }
 }
