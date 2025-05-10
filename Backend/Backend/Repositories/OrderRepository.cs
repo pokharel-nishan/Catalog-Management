@@ -22,5 +22,11 @@ namespace Backend.Repositories
             await _context.SaveChangesAsync();
             return order;
         }
+        
+        public async Task<bool> UpdateOrderAsync(Order order)
+        {
+            _context.Orders.Update(order);
+            return await _context.SaveChangesAsync() > 0;
+        }
     }
 }

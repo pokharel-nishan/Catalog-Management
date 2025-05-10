@@ -183,5 +183,18 @@ namespace Backend.Services
             await _cartRepository.ClearCartAsync(cart.Id);
             return createdOrder;
         }
+        
+        public async Task<bool> ConfirmOrderAsync(Guid orderId, Guid userId)
+        {
+            var order = await _orderRepository.GetOrderByIdAsync(orderId);
+            if (order == null || order.UserId != userId || order.Status != OrderStatus.Pending)
+                return false;
+
+            order.Status = OrderStatus.Ongoing;
+        
+            var success = await _orderRepository.UpdateOrderAsync(order);
+            if (success) SendOrderConfirmationMail(order);
+            return success;
+        }
     }
 }

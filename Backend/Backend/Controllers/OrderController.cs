@@ -36,6 +36,17 @@ public class OrderController : ControllerBase
         });
     }
 
+    [HttpPost("confirm/{orderId}")]
+    public async Task<IActionResult> ConfirmOrder(Guid orderId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var success = await _orderService.ConfirmOrderAsync(orderId, userId.Value);
+        return success 
+            ? Ok(new { success = true, message = "Order confirmed" })
+            : BadRequest(new { success = false, message = "Order confirmation failed" });
+    }
 
     [HttpPost("processClaimCode/{orderId}")]
     //[Authorize(Roles = "Staff")]

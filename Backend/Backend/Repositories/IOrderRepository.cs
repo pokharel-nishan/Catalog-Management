@@ -5,7 +5,8 @@ namespace Backend.Repositories
     public interface IOrderRepository
     {
         Task<Order> GetOrderByIdAsync(Guid orderId);
-
         Task<Order> CreateOrderAsync(Order order);
+        Task<bool> UpdateOrderAsync(Order order);
+
     }
 }
