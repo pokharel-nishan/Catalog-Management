@@ -1,25 +1,56 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import type { Book } from "../../../../types/book";
-import { books } from "../../../../data/book";
+import type { WishlistItem } from "../../../../data/wishlist";
+import { wishlist as initialWishlist } from "../../../../data/wishlist";
 import AccLayout from "../UserSidebar";
 
+type SortOption = "alphabetical" | "date-newest" | "date-oldest";
+
 const UserWishlist = () => {
-  const [wishlist, setWishlist] = useState<Book[]>([
-    books[0],
-    books[1],
-    books[2],
-  ]);
+  const [wishlist, setWishlist] = useState<WishlistItem[]>(initialWishlist);
+  const [sortOption, setSortOption] = useState<SortOption>("date-newest");
 
   const handleRemoveFromWishlist = (bookId: string) => {
     setWishlist(wishlist.filter((book) => book.id !== bookId));
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOption = e.target.value as SortOption;
+    setSortOption(selectedOption);
+
+    const sortedWishlist = [...wishlist];
+
+    if (selectedOption === "alphabetical") {
+      sortedWishlist.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (selectedOption === "date-newest") {
+      sortedWishlist.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    } else if (selectedOption === "date-oldest") {
+      sortedWishlist.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+    }
+
+    setWishlist(sortedWishlist);
   };
 
   return (
     <main className="bg-gray-50 min-h-screen">
       <AccLayout>
         <section className="container mx-auto py-10">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">My Wishlist</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">My Wishlist</h2>
+            <select
+              value={sortOption}
+              onChange={handleSortChange}
+              className="border border-gray-300 rounded-md py-2 px-3 text-sm text-gray-700"
+            >
+              <option value="date-newest">Sort by: Date (Newest First)</option>
+              <option value="date-oldest">Sort by: Date (Oldest First)</option>
+              <option value="alphabetical">Sort by: Alphabetical</option>
+            </select>
+          </div>
 
           {wishlist.length === 0 ? (
             <div className="text-center mt-20">
@@ -68,6 +99,9 @@ const UserWishlist = () => {
                         ${book.price ?? "N/A"}
                       </span>
                     </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Added on: {new Date(book.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
                   <div className="mt-4 flex justify-between">
                     <button

@@ -9,6 +9,9 @@ import { CartProvider } from "./components/pageComponents/cart/CartContext";
 import Login from "./pages/authentication/login";
 import MyOrders from "./components/pageComponents/user-profile/order/OrderHistory";
 import UserWishlist from "./components/pageComponents/user-profile/wishlist/UserWishlist";
+import Register from "./pages/authentication/register";
+import OrderSummaryPage from "./pages/user-profile/order";
+import UserProfile from "./pages/user-profile/profile";
 
 function App() {
   return (
@@ -16,13 +19,19 @@ function App() {
       <Router>
         <Layout>
           <Routes>
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/" element={<HomePage />} />
             <Route path="/books" element={<Books />} />
             <Route path="/books/:id" element={<BookDetailPage />} />
             <Route path="/success" element={<SuccessPage />} />
-            <Route path="/login" element={<Login />} />
+
+            {/* User Specific Pages */}
+            <Route path="/profile" element={<UserProfile />} />
             <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/wishlists" element={<UserWishlist />} />
+            <Route path="/orders" element={<OrderSummaryPage />} />
+
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>
