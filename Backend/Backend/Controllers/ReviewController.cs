@@ -51,16 +51,28 @@ public class ReviewController: ControllerBase
     {
         var currentUserId = GetUserId();
         if (currentUserId == null) return Unauthorized();
-
-        var targetUserId = currentUserId.Value;
         
-        // Only allow admins or the reviewer to view all users' reviews 
-        if (targetUserId != currentUserId && !User.IsInRole("Admin"))
-            return Forbid();
-
-        var reviews = await _reviewService.GetReviewsByUserIdAsync(targetUserId);
+        var reviews = await _reviewService.GetReviewsByUserIdAsync(currentUserId.Value);
         return Ok(new { success = true, reviews });
     }
+    
+    [HttpPut("update/{reviewId}")]
+    public async Task<IActionResult> UpdateReview(Guid reviewId, [FromBody] UpdateReviewDTO reviewDto)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var success = await _reviewService.UpdateReviewAsync(
+            userId.Value, 
+            reviewId, 
+            reviewDto.Content, 
+            reviewDto.Rating);
+        
+        return success 
+            ? Ok(new { success = true }) 
+            : BadRequest(new { success = false, message = "Review update failed" });
+    }
+    
     private Guid? GetUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 

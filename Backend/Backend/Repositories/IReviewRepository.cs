@@ -8,5 +8,7 @@ public interface IReviewRepository
     Task<IEnumerable<Review>> GetReviewsByUserIdAsync(Guid userId);
     Task<bool> HasUserPurchasedBookAsync(Guid userId, Guid bookId);
     Task<IEnumerable<Review>> GetReviewsByBookIdAsync(Guid bookId);
+    Task<Review> GetReviewByIdAsync(Guid reviewId);
+    Task<bool> UpdateReviewAsync(Review review);
 
 }

@@ -73,4 +73,15 @@ public class ReviewService: IReviewService
             CreatedAt = x.DateAdded
         });
     }
+    
+    public async Task<bool> UpdateReviewAsync(Guid userId, Guid reviewId, string content, int rating)
+    {
+        var review = await _reviewRepository.GetReviewByIdAsync(reviewId);
+        if (review == null) return false;
+        if (review.UserId != userId) return false;
+
+        review.Content = content;
+        review.Rating = rating;
+        return await _reviewRepository.UpdateReviewAsync(review);
+    }
 }

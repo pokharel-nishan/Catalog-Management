@@ -47,4 +47,18 @@ public class ReviewRepository: IReviewRepository
             .OrderByDescending(r => r.DateAdded)
             .ToListAsync();
     }
+    
+    public async Task<Review> GetReviewByIdAsync(Guid reviewId)
+    {
+        return await _context.Reviews
+            .Include(r => r.User)
+            .Include(r => r.Book)
+            .FirstOrDefaultAsync(r => r.ReviewId == reviewId);
+    }
+    
+    public async Task<bool> UpdateReviewAsync(Review review)
+    {
+        _context.Reviews.Update(review);
+        return await _context.SaveChangesAsync() > 0;
+    }
 }
