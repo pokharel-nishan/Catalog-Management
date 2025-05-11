@@ -65,4 +65,13 @@ public class BookmarkRepository: IBookmarkRepository
         return await _context.BookmarkBooks
             .AnyAsync(bb => bb.Bookmark.UserId == userId && bb.BookId == bookId);
     }
+    
+    public async Task<IEnumerable<Book>> GetBookmarkedBooksAsync(Guid userId)
+    {
+        return await _context.BookmarkBooks
+            .Where(bb => bb.Bookmark.UserId == userId)
+            .Include(bb => bb.Book)
+            .Select(bb => bb.Book)
+            .ToListAsync();
+    }
 }

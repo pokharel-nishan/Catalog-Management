@@ -9,4 +9,6 @@ public interface IBookmarkRepository
     Task<bool> AddBookToBookmarkAsync(Guid bookmarkId, Guid bookId);
     Task<bool> RemoveBookFromBookmarkAsync(Guid bookmarkId, Guid bookId);
     Task<bool> IsBookBookmarkedAsync(Guid userId, Guid bookId);
+    Task<IEnumerable<Book>> GetBookmarkedBooksAsync(Guid userId);
+
 }
