@@ -36,6 +36,16 @@ public class BookmarkController: ControllerBase
         return Ok(new { books });
     }
     
+    [HttpGet("check/{bookId}")]
+    public async Task<IActionResult> IsBookBookmarked(Guid bookId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var isBookmarked = await _bookmarkService.IsBookBookmarkedAsync(userId.Value, bookId);
+        return Ok(new { isBookmarked });
+    }
+    
     private Guid? GetUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 

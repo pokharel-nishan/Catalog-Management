@@ -41,6 +41,11 @@ public class BookmarkService: IBookmarkService
         return await _bookmarkRepository.AddBookToBookmarkAsync(bookmark.BookmarkId, bookId);
     }
     
+    public async Task<bool> IsBookBookmarkedAsync(Guid userId, Guid bookId)
+    {
+        return await _bookmarkRepository.IsBookBookmarkedAsync(userId, bookId);
+    }
+    
     public async Task<IEnumerable<Book>> GetBookmarkedBooksAsync(Guid userId)
     {
         return await _bookmarkRepository.GetBookmarkedBooksAsync(userId);
