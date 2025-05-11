@@ -10,5 +10,5 @@ public interface IReviewRepository
     Task<IEnumerable<Review>> GetReviewsByBookIdAsync(Guid bookId);
     Task<Review> GetReviewByIdAsync(Guid reviewId);
     Task<bool> UpdateReviewAsync(Review review);
-
+    Task<bool> DeleteReviewAsync(Guid reviewId);
 }

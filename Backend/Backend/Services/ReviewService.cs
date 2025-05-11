@@ -84,4 +84,13 @@ public class ReviewService: IReviewService
         review.Rating = rating;
         return await _reviewRepository.UpdateReviewAsync(review);
     }
+    
+    public async Task<bool> DeleteReviewAsync(Guid userId, Guid reviewId)
+    {
+        var review = await _reviewRepository.GetReviewByIdAsync(reviewId);
+        if (review == null) return false;
+        if (review.UserId != userId) return false;
+
+        return await _reviewRepository.DeleteReviewAsync(reviewId);
+    }
 }

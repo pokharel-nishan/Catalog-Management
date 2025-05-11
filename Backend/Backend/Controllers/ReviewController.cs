@@ -73,6 +73,18 @@ public class ReviewController: ControllerBase
             : BadRequest(new { success = false, message = "Review update failed" });
     }
     
+    [HttpDelete("delete/{reviewId}")]
+    public async Task<IActionResult> DeleteReview(Guid reviewId)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var success = await _reviewService.DeleteReviewAsync(userId.Value, reviewId);
+        return success 
+            ? Ok(new { success = true }) 
+            : BadRequest(new { success = false, message = "Review deletion failed" });
+    }
+    
     private Guid? GetUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 
