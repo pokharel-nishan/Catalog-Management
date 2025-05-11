@@ -14,6 +14,21 @@ public class ReviewService: IReviewService
         _bookRepository = bookRepository;
     }
 
+    public async Task<ReviewDTO> GetReviewById(Guid userId, Guid reviewId)
+    {
+        var review = await _reviewRepository.GetReviewByIdAsync(reviewId);
+        if (review.UserId != userId) return null;
+
+        return new ReviewDTO()
+        {
+            ReviewId = review.ReviewId,
+            Username = review.User.FirstName,
+            CreatedAt = review.DateAdded,
+            Content = review.Content,
+            Rating = review.Rating,
+        };
+    }
+
     public async Task<Review> AddReviewAsync(Guid userId, Guid bookId, string content, int rating)
     {
         if (rating < 1 || rating > 5)

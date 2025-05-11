@@ -17,6 +17,18 @@ public class ReviewController: ControllerBase
         _reviewService = reviewService;
     }
     
+    [HttpGet("/{reviewId}")]
+    public async Task<IActionResult> GetReviewsId(Guid reviewId)
+    {
+        var currentUserId = GetUserId();
+        if (currentUserId == null) return Unauthorized();
+        
+        var review = await _reviewService.GetReviewById(currentUserId.Value, reviewId);
+        if (review == null) return NotFound();
+        
+        return Ok(new { success = true, review });
+    }
+    
     [HttpPost("add/{bookId}")]
     public async Task<IActionResult> AddReview(Guid bookId, [FromBody] AddReviewDTO reviewDto)
     {
