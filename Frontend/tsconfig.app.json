@@ -1,8 +1,10 @@
 {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
+  "baseUrl": ".",
+  "paths": {
+    "@/*": ["src/*"],
+    "@/lib/*": ["src/lib/*"],
+    "@/components/ui/*": ["src/components/ui/*"]
+  },
 
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",

@@ -11,7 +11,7 @@ const CartDrawer: React.FC = () => {
 
   const handleCheckout = () => {
     setIsCartOpen(false);
-    navigate('/success');
+    navigate('/orders');
   };
 
   return (
@@ -107,7 +107,7 @@ const CartDrawer: React.FC = () => {
                   onClick={handleCheckout}
                   className="flex-1 rounded-lg bg-blue-600 py-2 text-white hover:bg-blue-700"
                 >
-                  Checkout
+                 Proceed to Checkout
                 </button>
               </div>
             </div>

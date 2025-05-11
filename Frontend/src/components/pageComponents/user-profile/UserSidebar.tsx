@@ -4,7 +4,6 @@ import {
   User,
   Package,
   Heart,
-  Settings,
   LogOut
 } from "lucide-react";
 import LogoutModal from "../../modals/LogoutModal";
@@ -14,10 +13,9 @@ export default function AccLayout({ children }: { children: React.ReactNode }) {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const tabs = [
-    { href: "/my-account", label: "My Account", icon: <User size={18} /> },
+    { href: "/profile", label: "Profile", icon: <User size={18} /> },
     { href: "/my-orders", label: "My Orders", icon: <Package size={18} /> },
     { href: "/wishlists", label: "My Wishlist", icon: <Heart size={18} /> },
-    { href: "/settings", label: "Settings", icon: <Settings size={18} /> },
     {
       href: "/logout",
       label: "Logout",
@@ -45,7 +43,7 @@ export default function AccLayout({ children }: { children: React.ReactNode }) {
                   isDanger
                     ? "text-red-500 hover:bg-red-50"
                     : isActive
-                    ? "bg-primary text-white"
+                    ? "bg-[#2BA1AA] text-white"
                     : "text-primary"
                 }`}
                 onClick={() => isLogout && handleTabClick({ href, label, icon, isLogout, isDanger })}

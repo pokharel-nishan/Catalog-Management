@@ -125,7 +125,7 @@ export default function LoginComponent() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition duration-300"
+              className="w-full py-3 bg-[#2BA1AA] text-white rounded-md hover:bg-teal-600 transition duration-300"
             >
               Login
             </button>
@@ -144,8 +144,8 @@ export default function LoginComponent() {
       <div className="hidden md:block w-1/2 bg-gray-50">
         <div className="h-full flex items-center justify-center p-8">
           <img
-            src="/api/placeholder/400/320"
-            alt="People reading books"
+            src="/loginpageillustration.png"
+            alt="Login Illustration"
             className="max-h-full object-contain"
           />
         </div>
