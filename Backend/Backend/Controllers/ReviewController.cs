@@ -39,6 +39,13 @@ public class ReviewController: ControllerBase
         }
     }
     
+    [HttpGet("book/{bookId}")]
+    public async Task<IActionResult> GetReviewsByBookId(Guid bookId)
+    {
+        var reviews = await _reviewService.GetReviewsByBookIdAsync(bookId);
+        return Ok(new { success = true, reviews });
+    }
+    
     private Guid? GetUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 

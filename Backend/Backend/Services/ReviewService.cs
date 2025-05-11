@@ -1,3 +1,4 @@
+using Backend.DTOs.User;
 using Backend.Entities;
 using Backend.Repositories;
 
@@ -6,9 +7,11 @@ namespace Backend.Services;
 public class ReviewService: IReviewService
 {
     private readonly IReviewRepository _reviewRepository;
-    public ReviewService(IReviewRepository reviewRepository)
+    private readonly IBookRepository _bookRepository;
+    public ReviewService(IReviewRepository reviewRepository, IBookRepository bookRepository)
     {
         _reviewRepository = reviewRepository;
+        _bookRepository = bookRepository;
     }
 
     public async Task<Review> AddReviewAsync(Guid userId, Guid bookId, string content, int rating)
@@ -37,5 +40,23 @@ public class ReviewService: IReviewService
         };
 
         return await _reviewRepository.AddReviewAsync(review);
+    }
+    
+    public async Task<IEnumerable<ReviewDTO>> GetReviewsByBookIdAsync(Guid bookId)
+    {
+        var existingBooks = await _bookRepository.GetBookByIdAsync(bookId);
+        if (existingBooks == null)
+            throw new KeyNotFoundException("Book not found");
+        
+       var reviews = await _reviewRepository.GetReviewsByBookIdAsync(bookId);
+
+       return reviews.Select(x => new ReviewDTO()
+       {
+           ReviewId = x.ReviewId,
+           Content = x.Content,
+           Rating = x.Rating,
+           Username = x.User.FirstName,
+           CreatedAt = x.DateAdded
+       });
     }
 }

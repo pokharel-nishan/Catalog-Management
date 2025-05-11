@@ -38,7 +38,7 @@ namespace Backend.Repositories
 
         public async Task<Book?> GetBookByIdAsync(Guid bookId)
         {
-            return await _context.Books.FindAsync(bookId);
+            return await _context.Books.FirstOrDefaultAsync(x => x.BookId == bookId);
         }
 
         public async Task<bool> UpdateBookDetailsAsync(Book book)

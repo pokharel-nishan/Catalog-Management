@@ -37,4 +37,13 @@ public class ReviewRepository: IReviewRepository
                 ob.Order.UserId == userId && 
                 ob.Order.Status == OrderStatus.Completed);
     }
+    
+    public async Task<IEnumerable<Review>> GetReviewsByBookIdAsync(Guid bookId)
+    {
+        return await _context.Reviews
+            .Include(r => r.User)
+            .Where(r => r.BookId == bookId)
+            .OrderByDescending(r => r.DateAdded)
+            .ToListAsync();
+    }
 }
