@@ -92,6 +92,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<SignInManager<User>, CustomSignInManager<User>>();
 
 // Get JWT config section from appsettings
