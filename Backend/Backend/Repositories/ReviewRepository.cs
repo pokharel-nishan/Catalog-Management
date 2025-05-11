@@ -23,6 +23,7 @@ public class ReviewRepository: IReviewRepository
     {
         return await _context.Reviews
             .Include(r => r.Book)
+            .Include(r => r.User)
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.DateAdded)
             .ToListAsync();

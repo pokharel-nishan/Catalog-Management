@@ -46,6 +46,21 @@ public class ReviewController: ControllerBase
         return Ok(new { success = true, reviews });
     }
     
+    [HttpGet("user")]
+    public async Task<IActionResult> GetReviewsByUserId()
+    {
+        var currentUserId = GetUserId();
+        if (currentUserId == null) return Unauthorized();
+
+        var targetUserId = currentUserId.Value;
+        
+        // Only allow admins or the reviewer to view all users' reviews 
+        if (targetUserId != currentUserId && !User.IsInRole("Admin"))
+            return Forbid();
+
+        var reviews = await _reviewService.GetReviewsByUserIdAsync(targetUserId);
+        return Ok(new { success = true, reviews });
+    }
     private Guid? GetUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 

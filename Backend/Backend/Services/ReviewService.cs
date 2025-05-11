@@ -59,4 +59,18 @@ public class ReviewService: IReviewService
            CreatedAt = x.DateAdded
        });
     }
+    
+    public async Task<IEnumerable<ReviewDTO>> GetReviewsByUserIdAsync(Guid userId)
+    {
+        var reviews = await _reviewRepository.GetReviewsByUserIdAsync(userId);
+
+        return reviews.Select(x => new ReviewDTO()
+        {
+            ReviewId = x.ReviewId,
+            Content = x.Content,
+            Rating = x.Rating,
+            Username = x.User.FirstName,
+            CreatedAt = x.DateAdded
+        });
+    }
 }
