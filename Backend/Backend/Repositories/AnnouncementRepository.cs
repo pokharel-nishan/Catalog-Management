@@ -67,5 +67,23 @@ namespace Backend.Repositories
                 return false;
             }
         }
+        
+        public async Task<List<Announcement>> GetPendingAnnouncementsAsync(DateTime currentTime)
+        {
+            return await _context.Announcements
+                .Where(a => !a.IsPublished && 
+                            a.PostedAt <= currentTime && 
+                            (a.ExpiryDate == null || a.ExpiryDate > currentTime))
+                .ToListAsync();
+        }
+        
+        public async Task<List<Announcement>> GetActiveAnnouncementsAsync(DateTime currentTime)
+        {
+            return await _context.Announcements
+                .Where(a => a.IsPublished && 
+                            (a.ExpiryDate == null || a.ExpiryDate > currentTime))
+                .OrderByDescending(a => a.PostedAt)
+                .ToListAsync();
+        }
     }
 }

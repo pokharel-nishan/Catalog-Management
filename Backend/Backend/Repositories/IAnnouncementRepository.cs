@@ -9,5 +9,7 @@ namespace Backend.Repositories
         Task<Announcement?> GetAnnouncementByIdAsync(Guid announcementId);
         Task<bool> UpdateAnnouncementDetailsAsync(Announcement announcement);
         Task<bool> DeleteAnnouncementAsync(Guid announcementId);
+        Task<List<Announcement>> GetPendingAnnouncementsAsync(DateTime currentTime);
+        Task<List<Announcement>> GetActiveAnnouncementsAsync(DateTime currentTime);
     }
 }

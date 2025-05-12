@@ -68,6 +68,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<SignInManager<User>, CustomSignInManager<User>>();
+builder.Services.AddHostedService<TimedAnnouncementService>();
 
 // Get JWT config section from appsettings
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -114,7 +115,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll");
+app.UseCors(policy => 
+    policy.WithOrigins("http://localhost:5173")
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials());
 
 app.UseAuthentication();
 app.UseAuthorization();

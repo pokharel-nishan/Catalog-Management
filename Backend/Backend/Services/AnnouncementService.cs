@@ -17,6 +17,12 @@ namespace Backend.Services
             _announcementRepository = announcementRepository;
             _hubContext = hubContext;
         }
+        
+        public async Task<List<Announcement>> GetActiveAnnouncementsAsync()
+        {
+            var now = DateTime.UtcNow;
+            return await _announcementRepository.GetActiveAnnouncementsAsync(now);
+        }
 
         public async Task<bool> AddAnnouncementAsync(AddAnnouncementDTO addAnnouncementDTO, Guid adminId)
         {
@@ -28,6 +34,7 @@ namespace Backend.Services
                     Description = addAnnouncementDTO.Description,
                     PostedAt = addAnnouncementDTO.PostedAt,
                     UserId = adminId,
+                    IsPublished = addAnnouncementDTO.PostedAt <= DateTime.UtcNow
                 };
 
                 if (addAnnouncementDTO.ExpiryDate != null)
@@ -37,10 +44,15 @@ namespace Backend.Services
 
                 bool isAnnouncementAdded = await _announcementRepository.AddAnnouncementAsync(announcement);
 
-                // Send notification if PostedAt is now or in the past
-                if (isAnnouncementAdded && announcement.PostedAt <= DateTime.UtcNow)
+                // Send immediately if it's time
+                if (isAnnouncementAdded && announcement.IsPublished)
                 {
-                    await _hubContext.Clients.All.SendAsync("ReceiveNotification", "New Announcment Posted!");
+                    await _hubContext.Clients.All.SendAsync("ReceiveAnnouncement", 
+                        new {
+                            id = announcement.AnnouncementId,
+                            message = announcement.Description,
+                            date = announcement.PostedAt
+                        });
                 }
 
                 return isAnnouncementAdded;

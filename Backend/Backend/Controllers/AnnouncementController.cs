@@ -20,6 +20,13 @@ public class AnnouncementController : ControllerBase
         _announcementService = announcementService;
         _userService = userService;
     }
+    
+    [HttpGet("active")]
+    public async Task<IActionResult> GetActiveAnnouncements()
+    {
+        var announcements = await _announcementService.GetActiveAnnouncementsAsync();
+        return Ok(announcements);
+    }
 
     [HttpPost("addAnnouncement")]
     //[Authorize(Roles = "Admin")]
