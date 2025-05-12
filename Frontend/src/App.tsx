@@ -12,12 +12,14 @@ import UserWishlist from "./components/pageComponents/user-profile/wishlist/User
 import Register from "./pages/authentication/register";
 import OrderSummaryPage from "./pages/user-profile/order";
 import UserProfile from "./pages/user-profile/profile";
+import AdminLayout from "./layouts/AdminLayout";
+import DashboardAnalytics from "./components/pageComponents/admin/dashboard/AdminDashboard";
 
 function App() {
   return (
     <CartProvider>
       <Router>
-        <Layout>
+        <AdminLayout>
           <Routes>
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
@@ -33,8 +35,13 @@ function App() {
             <Route path="/orders" element={<OrderSummaryPage />} />
 
             <Route path="*" element={<NotFoundPage />} />
+
+
+      
+            <Route path="/admin" element={<DashboardAnalytics />} />
+
           </Routes>
-        </Layout>
+          </AdminLayout>
       </Router>
     </CartProvider>
   );

@@ -32,7 +32,7 @@ export default function AccLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <section className="container mx-auto grid grid-cols-1 lg:grid-cols-6 gap-4 lg:gap-8 p-4 min-h-screen">
+    <section className="container mx-auto grid grid-cols-1 lg:grid-cols-6 gap-4 lg:gap-8 p-4 min-h-0 lg:min-h-screen">
       <div className="col-span-1 lg:col-span-1 space-y-2 shadow rounded-2xl p-2 lg:p-4 bg-white border">
         <div className="flex flex-row lg:flex-col lg:space-y-4">
           {tabs.map(({ href, label, icon, isLogout, isDanger }) => {
