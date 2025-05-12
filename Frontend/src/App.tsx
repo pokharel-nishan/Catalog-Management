@@ -14,6 +14,9 @@ import OrderSummaryPage from "./pages/user-profile/order";
 import UserProfile from "./pages/user-profile/profile";
 import AdminLayout from "./layouts/AdminLayout";
 import DashboardAnalytics from "./components/pageComponents/admin/dashboard/AdminDashboard";
+import StaffManagement from "./pages/admin/manage-staffs";
+import BookManagement from "./pages/admin/manage-books";
+import OrdersManagement from "./pages/admin/manage-orders";
 
 function App() {
   return (
@@ -39,7 +42,9 @@ function App() {
 
       
             <Route path="/admin" element={<DashboardAnalytics />} />
-
+            <Route path="/admin/staffs" element={<StaffManagement />} />
+            <Route path="/admin/books" element={<BookManagement />} />
+            <Route path="/admin/orders" element={<OrdersManagement />} />
           </Routes>
           </AdminLayout>
       </Router>
