@@ -36,8 +36,13 @@ public class Book
     
     public int Stock { get; set; }
     
-    [Range(0, 1)]
-    public decimal Discount { get; set; } 
+    public string ImageURL { get; set; }
     
+    [Range(0, 1)]
+    public decimal Discount { get; set; }
+    public DateTime? DiscountStartDate { get; set; }
+    public DateTime? DiscountEndDate { get; set; }
+    public DateTime? ArrivalDate { get; set; }
+
     public virtual User User { get; set; }
 }

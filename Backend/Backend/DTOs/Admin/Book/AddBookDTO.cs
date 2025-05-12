@@ -14,6 +14,9 @@
         public decimal Price { get; set; }
         public int Stock { get; set; }
         public decimal Discount { get; set; }
+        public DateTime? DiscountStartDate { get; set; }
+        public DateTime? DiscountEndDate { get; set; }
+        public DateTime? ArrivalDate { get; set; }
 
     }
 }

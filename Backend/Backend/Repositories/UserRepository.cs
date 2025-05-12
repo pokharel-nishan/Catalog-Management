@@ -11,7 +11,6 @@ public class UserRepository : IUserRepository
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
 
-
     public UserRepository(UserManager<User> userManager, SignInManager<User> signInManager)
     {
         _userManager = userManager;
@@ -76,5 +75,10 @@ public class UserRepository : IUserRepository
             Console.WriteLine("Admin user not found");
         }
         return admin.Id;
+    }
+
+    public async Task<List<User>> GetAllStaffUsersAsync()
+    {
+        return (await _userManager.GetUsersInRoleAsync("Staff")).ToList();
     }
 }
