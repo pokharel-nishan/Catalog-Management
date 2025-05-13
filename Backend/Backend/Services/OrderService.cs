@@ -14,15 +14,18 @@ namespace Backend.Services
         private IUserRepository _userRepository;
         private EmailService _emailService;
         private ICartRepository _cartRepository;
+        private readonly IOrderNotificationService _orderNotificationService;
 
         public OrderService(IOrderRepository orderRepository, IOrderBookRepository orderBookRepository,
-            IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository)
+            IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository, IOrderNotificationService orderNotificationService)
         {
             _orderRepository = orderRepository;
             _emailService = emailService;
             _userRepository = userRepository;
             _orderBookRepository = orderBookRepository;
             _cartRepository = cartRepository;
+            _orderNotificationService = orderNotificationService;
+
         }
 
         private async void SendOrderConfirmationMail(Order order)
@@ -251,7 +254,11 @@ namespace Backend.Services
 
             order.Status = OrderStatus.Completed;
             var success = await _orderRepository.UpdateOrderAsync(order);
-            if (success) SendOrderCompletionMail(order);
+            if (success)
+            {
+                await _orderNotificationService.NotifyOrderCompletion(orderId);
+                SendOrderCompletionMail(order);
+            };
             return success;
         }
 
