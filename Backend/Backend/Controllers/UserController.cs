@@ -74,12 +74,15 @@ public class UserController : ControllerBase
 
                 // Generate the token
                 var token = await _userService.GenerateTokenAsync(user);
-
+                
+                var userDetails = await _userService.GetUserDetailsByEmailAsync(loginDto.Email);
                 return Ok(new
                 {
+                    success = true,
                     Message = "Login successful",
                     Token = token,
-                    UserId = user.Id
+                    UserId = userDetails.Id,
+                    Roles = userDetails.Roles
                 });
             }
 

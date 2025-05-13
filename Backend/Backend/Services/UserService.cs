@@ -89,6 +89,22 @@ public class UserService : IUserService
         return await _userManager.FindByEmailAsync(email);
     }
 
+    public async Task<LoginResponseDTO> GetUserDetailsByEmailAsync(string email)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+            return null;
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return new LoginResponseDTO()
+        {
+            Id = user.Id,
+            Email = user.Email,
+            Roles = roles
+        };
+    }
+    
     public async Task<string> GenerateTokenAsync(User user)
     {
         // Create claims
