@@ -23,4 +23,5 @@ public interface IUserService
 
     Task<UserDetailsDTO> GetUserDetailsByIdAsync(Guid userId);
 
+    Task<List<UserDetailsDTO>> GetAllUsers();
 }

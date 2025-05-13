@@ -84,6 +84,11 @@ public class UserRepository : IUserRepository
         return admin.Id;
     }
 
+    public async Task<List<User>> getAllRegularUsersAsync()
+    {
+        return (await _userManager.GetUsersInRoleAsync("Regular")).ToList();
+    }
+    
     public async Task<List<User>> GetAllStaffUsersAsync()
     {
         return (await _userManager.GetUsersInRoleAsync("Staff")).ToList();
