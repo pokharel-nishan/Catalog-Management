@@ -17,5 +17,8 @@ public interface IUserRepository
 
     Task<List<User>> GetAllStaffUsersAsync();
     Task<List<User>> getAllRegularUsersAsync();
+    
+    Task<User?> GetUserByIdAsync(Guid userId);
+
 
 }

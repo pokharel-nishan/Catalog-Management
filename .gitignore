@@ -65,9 +65,10 @@ Backend/*.sln.docstates
 
 Backend/wwwroot/
 
-Backend/appsettings.Development.json
-Backend/appsettings.json
+Backend/Backend/appsettings.Development.json
+Backend/Backend/appsettings.json
 Backend/.idea/
+Backend/Backend/.DS_Store
 
 # Frontend 
 Frontend/logs

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
 
-type UserRole = 'admin' | 'staff' | 'user';
+type UserRole = "Admin" | "Staff" | "Regular";
 
 interface AuthUser {
   id: string;
@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('authUser');
+    const storedUser = localStorage.getItem("authUser");
     if (storedUser) {
       try {
         const userData: AuthUser = JSON.parse(storedUser);
@@ -108,11 +108,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       id: userData.id ?? "",
       name: userData.name ?? "",
       email: userData.email ?? "",
-      role: userData.role ?? "user",
+      role: userData.role ?? "Regular",
       token: userData.token,
       avatarUrl: userData.avatarUrl,
       address: userData.address,
     };
+
 
     setUser(completeUserData);
     localStorage.setItem('authUser', JSON.stringify(completeUserData));
@@ -130,9 +131,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     login,
     logout,
-    isAdmin: user?.role === 'admin',
-    isStaff: user?.role === 'staff',
-    isUser: user?.role === 'user',
+    isAdmin: user?.role === "Admin",
+    isStaff: user?.role === "Staff",
+    isUser: user?.role === "Regular",
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
