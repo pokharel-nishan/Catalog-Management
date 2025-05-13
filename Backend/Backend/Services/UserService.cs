@@ -88,6 +88,26 @@ public class UserService : IUserService
     {
         return await _userManager.FindByEmailAsync(email);
     }
+    
+    public async Task<UserDetailsDTO> GetUserDetailsByIdAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        
+        if (user == null)
+            return null;
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return new ()
+        {
+            Email = user.Email,
+            Roles = roles,
+            Address = user.Address,
+            DateJoined = user.DateJoined,
+            FirstName = user.FirstName,
+            LastName = user.LastName
+        };
+    }
 
     public async Task<LoginResponseDTO> GetUserDetailsByEmailAsync(string email)
     {

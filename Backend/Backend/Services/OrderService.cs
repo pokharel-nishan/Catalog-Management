@@ -275,7 +275,9 @@ namespace Backend.Services
                     ImageUrl = ob.Book.ImageURL,
                     Quantity = ob.BookQuantity,
                     UnitPrice = ob.BookTotal / ob.BookQuantity,
-                    Discount = 1 - (ob.BookTotal / (ob.BookQuantity * ob.Book.Price)),
+                    Discount = (ob.BookQuantity == 0 || ob.Book.Price == 0) 
+                        ? 0 
+                        : 1 - (ob.BookTotal / (ob.BookQuantity * ob.Book.Price)),
                     Subtotal = ob.BookTotal
                 }).ToList()
             };
