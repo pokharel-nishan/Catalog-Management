@@ -14,14 +14,11 @@ export interface Book {
   price: number;
   stock: number;
   inStock: boolean;
-  imageURL?: string;
   coverImage?: string;
   discount: number;
   discountStartDate?: Date | string | null;
   discountEndDate?: Date | string | null;
   arrivalDate?: Date | string | null;
-  rating?: number;
-  voters?: number | string;
   pages?: number;
   location?: string;
   imageURL: string;
