@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 
-type UserRole = 'admin' | 'staff' | 'user';
+type UserRole = "Admin" | "Staff" | "Regular";
 
 interface AuthUser {
   id: string;
@@ -10,7 +10,7 @@ interface AuthUser {
   role: UserRole;
   avatarUrl?: string;
   token: string;
-  address?: string; 
+  address?: string;
 }
 
 interface AuthContextType {
@@ -41,14 +41,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('authUser');
+    const storedUser = localStorage.getItem("authUser");
     if (storedUser) {
       try {
         const userData: AuthUser = JSON.parse(storedUser);
         setUser(userData);
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('authUser');
+        console.error("Error parsing stored user data:", error);
+        localStorage.removeItem("authUser");
       }
     }
   }, []);
@@ -58,34 +58,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error("No token provided in user data");
       throw new Error("Authentication token is required");
     }
-  
+
     // Ensure all required fields are present, or throw an error
     const completeUserData: AuthUser = {
       id: userData.id ?? "",
       name: userData.name ?? "",
       email: userData.email ?? "",
-      role: userData.role ?? "user",
-      token: userData.token, 
+      role: userData.role ?? "Regular",
+      token: userData.token,
       avatarUrl: userData.avatarUrl,
       address: userData.address,
     };
-  
+
     setUser(completeUserData);
-    localStorage.setItem('authUser', JSON.stringify(completeUserData));
+    localStorage.setItem("authUser", JSON.stringify(completeUserData));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('authUser');
+    localStorage.removeItem("authUser");
   };
 
   const value: AuthContextType = {
     user,
     login,
     logout,
-    isAdmin: user?.role === 'admin',
-    isStaff: user?.role === 'staff',
-    isUser: user?.role === 'user',
+    isAdmin: user?.role === "Admin",
+    isStaff: user?.role === "Staff",
+    isUser: user?.role === "Regular",
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -28,7 +28,7 @@ namespace Backend.Services
 
         }
 
-        private async void SendOrderConfirmationMail(Order order)
+        private async Task SendOrderConfirmationMail(Order order)
         {
             try
             {
@@ -78,7 +78,7 @@ namespace Backend.Services
             }
         }
 
-        private async void SendOrderCompletionMail(Order order)
+        private async Task SendOrderCompletionMail(Order order)
         {
             try
             {
@@ -229,7 +229,7 @@ namespace Backend.Services
             order.Status = OrderStatus.Ongoing;
 
             var success = await _orderRepository.UpdateOrderAsync(order);
-            if (success) SendOrderConfirmationMail(order);
+            if (success) await SendOrderConfirmationMail(order);
             return success;
         }
 
@@ -257,7 +257,7 @@ namespace Backend.Services
             if (success)
             {
                 await _orderNotificationService.NotifyOrderCompletion(orderId);
-                SendOrderCompletionMail(order);
+                await SendOrderCompletionMail(order);
             };
             return success;
         }
