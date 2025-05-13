@@ -21,22 +21,57 @@ public class BookController : ControllerBase
     }
 
     [HttpPost("addBook")]
-    //[Authorize(Roles = "Admin")]
-    public async Task<IActionResult> AddBookAsync([FromBody] AddBookDTO addBookDTO)
+    // [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AddBookAsync([FromForm] AddBookDTO addBookFormDTO, [FromForm] IFormFile imageFile)
     {
         var adminId = await _userService.GetAdminIdAsync();
 
-        bool isBookAdded = await _bookService.AddBookAsync(addBookDTO, adminId);
+        // Save file to local folder
+        string imagePath = null;
+        if (imageFile != null && imageFile.Length > 0)
+        {
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles");
+            Directory.CreateDirectory(uploadsFolder);
+            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+            var filePath = Path.Combine(uploadsFolder, fileName);
 
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await imageFile.CopyToAsync(stream);
+            }
+
+            imagePath = "/UploadedFiles/" + fileName; // Store relative path
+        }
+
+        // Map to original AddBookDTO
+        var addBookDTO = new AddBookDTO
+        {
+            ISBN = addBookFormDTO.ISBN,
+            Title = addBookFormDTO.Title,
+            Author = addBookFormDTO.Author,
+            Publisher = addBookFormDTO.Publisher,
+            PublicationDate = addBookFormDTO.PublicationDate,
+            Genre = addBookFormDTO.Genre,
+            Language = addBookFormDTO.Language,
+            Format = addBookFormDTO.Format,
+            Description = addBookFormDTO.Description,
+            Price = addBookFormDTO.Price,
+            Stock = addBookFormDTO.Stock,
+            Discount = addBookFormDTO.Discount,
+            DiscountStartDate = addBookFormDTO.DiscountStartDate,
+            DiscountEndDate = addBookFormDTO.DiscountEndDate,
+            ArrivalDate = addBookFormDTO.ArrivalDate,
+            ImageUrl = imagePath
+        };
+
+        bool isBookAdded = await _bookService.AddBookAsync(addBookDTO, adminId);
         if (isBookAdded)
         {
             return Ok($"Success: Book '{addBookDTO.Title}' (ISBN: {addBookDTO.ISBN}) added successfully!");
         }
-        else
-        {
-            return BadRequest($"Error: Book '{addBookDTO.Title}' (ISBN: {addBookDTO.ISBN}) could not be added.");
-        }
+        return BadRequest($"Error: Book '{addBookDTO.Title}' (ISBN: {addBookDTO.ISBN}) could not be added.");
     }
+
 
     [HttpGet("getAllBooks")]
     //[Authorize(Roles = "Admin")]

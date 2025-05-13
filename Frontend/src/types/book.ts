@@ -24,6 +24,9 @@ export interface Book {
   voters?: number | string;
   pages?: number;
   location?: string;
+  imageURL: string;
+  rating: number;
+  voters?: number;
   reads?: string;
   salePercentage?: number;
   isNewRelease?: boolean;
