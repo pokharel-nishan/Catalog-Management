@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Backend.Services.Email;
 using Microsoft.OpenApi.Models;
+using Backend.Services.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +84,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IBookService, BookService>();
 
+builder.Services.AddScoped<IAnnouncementRepository, AnnouncementRepository>();
+builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+builder.Services.AddSignalR();
+
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderBookRepository, OrderBookRepository>();
@@ -97,6 +102,7 @@ builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 builder.Services.AddScoped<IBookmarkRepository, BookmarkRepository>();
 builder.Services.AddScoped<SignInManager<User>, CustomSignInManager<User>>();
+builder.Services.AddHostedService<TimedAnnouncementService>();
 
 // Get JWT config section from appsettings
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -143,11 +149,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll");
+app.UseCors(policy => 
+    policy.WithOrigins("http://localhost:5173")
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials());
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHub<NotificationHub>("/notificationHub");
 app.MapControllers();
 
 app.Run();

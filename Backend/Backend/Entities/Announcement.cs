@@ -19,5 +19,8 @@ public class Announcement
 
     public DateTime ExpiryDate { get; set; }
     
+    public bool IsPublished { get; set; } = false;
+
+    
     public virtual User User { get; set; }
 }
