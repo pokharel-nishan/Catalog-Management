@@ -10,6 +10,8 @@ namespace Backend.Repositories
         // Read
         public Task<List<Book>> GetAllBooksAsync();
         public Task<Book> GetBookByIdAsync(Guid bookId);
+        
+        Task<List<Book>> GetBooksByOrderIdAsync(Guid orderId);
 
         // Update
         public Task<bool> UpdateBookDetailsAsync(Book book);

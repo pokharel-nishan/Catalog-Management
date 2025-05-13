@@ -13,10 +13,12 @@ namespace Backend.Controllers;
 public class OrderController : ControllerBase
 {
     private IOrderService _orderService;
+    private IUserService _userService;
 
-    public OrderController(IOrderService orderService)
+    public OrderController(IOrderService orderService, IUserService userService)
     {
         _orderService = orderService;
+        _userService = userService;
     }
 
     [HttpPost("checkout")]
@@ -76,10 +78,12 @@ public class OrderController : ControllerBase
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
+        var userDetails = await _userService.GetUserDetailsByIdAsync(userId.Value);
+        
         var order = await _orderService.GetOrderDetailsAsync(orderId);
         if (order == null) return NotFound();
 
-        if (!User.IsInRole("Admin") && !User.IsInRole("Staff") && order.UserId != userId.Value)
+        if (userDetails.Roles[0] != "Admin" && userDetails.Roles[0] != "Staff" && order.UserId != userId.Value)
         {
             return StatusCode(403, new { 
                 success = false, 

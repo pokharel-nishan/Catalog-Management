@@ -12,6 +12,7 @@ using System.Text;
 using Backend.Services.Email;
 using Microsoft.OpenApi.Models;
 using Backend.Services.Notifications;
+using Microsoft.AspNetCore.Http.Connections;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +104,7 @@ builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 builder.Services.AddScoped<IBookmarkRepository, BookmarkRepository>();
 builder.Services.AddScoped<SignInManager<User>, CustomSignInManager<User>>();
 builder.Services.AddHostedService<TimedAnnouncementService>();
+builder.Services.AddScoped<IOrderNotificationService, OrderNotificationService>();
 
 // Get JWT config section from appsettings
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -158,7 +160,10 @@ app.UseCors(policy =>
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapHub<NotificationHub>("/notificationHub");
+// app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<NotificationHub>("/notificationHub", options => {
+    options.Transports = HttpTransportType.WebSockets;
+});
 app.MapControllers();
 
 app.Run();

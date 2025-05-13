@@ -1,3 +1,6 @@
+// This file is not currently  used ....
+
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ShoppingCart, Menu, X } from 'lucide-react';

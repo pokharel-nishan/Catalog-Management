@@ -14,18 +14,21 @@ namespace Backend.Services
         private IUserRepository _userRepository;
         private EmailService _emailService;
         private ICartRepository _cartRepository;
+        private readonly IOrderNotificationService _orderNotificationService;
 
         public OrderService(IOrderRepository orderRepository, IOrderBookRepository orderBookRepository,
-            IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository)
+            IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository, IOrderNotificationService orderNotificationService)
         {
             _orderRepository = orderRepository;
             _emailService = emailService;
             _userRepository = userRepository;
             _orderBookRepository = orderBookRepository;
             _cartRepository = cartRepository;
+            _orderNotificationService = orderNotificationService;
+
         }
 
-        private async void SendOrderConfirmationMail(Order order)
+        private async Task SendOrderConfirmationMail(Order order)
         {
             try
             {
@@ -75,7 +78,7 @@ namespace Backend.Services
             }
         }
 
-        private async void SendOrderCompletionMail(Order order)
+        private async Task SendOrderCompletionMail(Order order)
         {
             try
             {
@@ -226,7 +229,7 @@ namespace Backend.Services
             order.Status = OrderStatus.Ongoing;
 
             var success = await _orderRepository.UpdateOrderAsync(order);
-            if (success) SendOrderConfirmationMail(order);
+            if (success) await SendOrderConfirmationMail(order);
             return success;
         }
 
@@ -251,7 +254,11 @@ namespace Backend.Services
 
             order.Status = OrderStatus.Completed;
             var success = await _orderRepository.UpdateOrderAsync(order);
-            if (success) SendOrderCompletionMail(order);
+            if (success)
+            {
+                await _orderNotificationService.NotifyOrderCompletion(orderId);
+                await SendOrderCompletionMail(order);
+            };
             return success;
         }
 
@@ -275,7 +282,9 @@ namespace Backend.Services
                     ImageUrl = ob.Book.ImageURL,
                     Quantity = ob.BookQuantity,
                     UnitPrice = ob.BookTotal / ob.BookQuantity,
-                    Discount = 1 - (ob.BookTotal / (ob.BookQuantity * ob.Book.Price)),
+                    Discount = (ob.BookQuantity == 0 || ob.Book.Price == 0) 
+                        ? 0 
+                        : 1 - (ob.BookTotal / (ob.BookQuantity * ob.Book.Price)),
                     Subtotal = ob.BookTotal
                 }).ToList()
             };

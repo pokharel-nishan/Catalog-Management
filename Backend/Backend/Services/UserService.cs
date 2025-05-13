@@ -20,7 +20,8 @@ public class UserService : IUserService
     private readonly ICartService _cartService;
 
 
-    public UserService(IUserRepository userRepository, UserManager<User> userManager, IConfiguration configuration, ICartService cartService)
+    public UserService(IUserRepository userRepository, UserManager<User> userManager, IConfiguration configuration,
+        ICartService cartService)
     {
         _userRepository = userRepository;
         _userManager = userManager;
@@ -46,7 +47,7 @@ public class UserService : IUserService
         };
 
         var createdUser = await _userRepository.CreateUserAsync(user, registerDto.Password);
-        
+
         try
         {
             await _cartService.CreateCartForUserAsync(createdUser.Id);
@@ -89,6 +90,44 @@ public class UserService : IUserService
         return await _userManager.FindByEmailAsync(email);
     }
 
+    public async Task<UserDetailsDTO> GetUserDetailsByIdAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+
+        if (user == null)
+            return null;
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return new()
+        {
+            Email = user.Email,
+            Roles = roles,
+            Address = user.Address,
+            DateJoined = user.DateJoined,
+            FirstName = user.FirstName,
+            LastName = user.LastName
+        };
+    }
+
+    public async Task<LoginResponseDTO> GetUserDetailsByEmailAsync(string email)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+            return null;
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return new LoginResponseDTO()
+        {
+            Id = user.Id,
+            Email = user.Email,
+            Roles = roles,
+            FirstName = user.FirstName,
+            LastName = user.LastName
+        };
+    }
+
     public async Task<string> GenerateTokenAsync(User user)
     {
         // Create claims
@@ -118,7 +157,21 @@ public class UserService : IUserService
 
     }
 
-    public async Task<Guid> GetAdminIdAsync()
+    public async Task<List<UserDetailsDTO>> GetAllUsers()
+    {
+        var users = await _userRepository.getAllRegularUsersAsync();
+        return users.Select(user => new UserDetailsDTO
+        {
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Address = user.Address,
+            DateJoined = user.DateJoined,
+            Email = user.Email,
+        }).ToList();
+    }
+
+
+public async Task<Guid> GetAdminIdAsync()
     {
         return await _userRepository.GetAdminIdAsync();
     }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 using Backend.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Repositories;
 
@@ -10,11 +11,13 @@ public class UserRepository : IUserRepository
 {
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
+    private readonly ApplicationDbContext _context;
 
-    public UserRepository(UserManager<User> userManager, SignInManager<User> signInManager)
+    public UserRepository(UserManager<User> userManager, SignInManager<User> signInManager, ApplicationDbContext context)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _context = context;
     }
 
     public async Task<User> CreateUserAsync(User user, string password)
@@ -25,7 +28,14 @@ public class UserRepository : IUserRepository
         {
             throw new ApplicationException("Failed to create user.");
         }
-
+        
+        // Add user to "Regular" role
+        var roleResult = await _userManager.AddToRoleAsync(user, "Regular");
+        if (!roleResult.Succeeded)
+        {
+            throw new ApplicationException("Failed to create regular user.");
+        }
+        
         return user;
     }
 
@@ -77,8 +87,20 @@ public class UserRepository : IUserRepository
         return admin.Id;
     }
 
+    public async Task<List<User>> getAllRegularUsersAsync()
+    {
+        return (await _userManager.GetUsersInRoleAsync("Regular")).ToList();
+    }
+    
     public async Task<List<User>> GetAllStaffUsersAsync()
     {
         return (await _userManager.GetUsersInRoleAsync("Staff")).ToList();
+    }
+    
+    public async Task<User?> GetUserByIdAsync(Guid userId)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
     }
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Backend.DTOs.Admin.Staff;
 using Backend.DTOs.Common;
 using Backend.DTOs.User;
@@ -6,6 +7,7 @@ using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Backend.Controllers;
 
@@ -74,12 +76,17 @@ public class UserController : ControllerBase
 
                 // Generate the token
                 var token = await _userService.GenerateTokenAsync(user);
-
+                
+                var userDetails = await _userService.GetUserDetailsByEmailAsync(loginDto.Email);
                 return Ok(new
                 {
+                    success = true,
                     Message = "Login successful",
                     Token = token,
-                    UserId = user.Id
+                    UserId = userDetails.Id,
+                    userDetails.Roles,
+                    userDetails.FirstName,
+                    userDetails.LastName,
                 });
             }
 
@@ -93,8 +100,59 @@ public class UserController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
-    public IActionResult GetCurrentUser()
+    public async Task<IActionResult> GetCurrentUser()
     {
-        return Ok(new { Message = "You are authenticated", UserId = User.Identity.Name });
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var userDetails = await _userService.GetUserDetailsByIdAsync(userId.Value);
+        return Ok(new {success = true,  userDetails});
+    }
+
+    [HttpGet("{userId}")]
+    public async Task<IActionResult> GetCurrentUser(Guid userId)
+    {
+        var adminId = GetUserId();
+        if (adminId == null) return Unauthorized();
+
+        var adminDetails = await _userService.GetUserDetailsByIdAsync(adminId.Value);
+
+        if (adminDetails.Roles[0] != "Admin")
+        {
+            return Unauthorized();
+        }
+        
+        return Ok(await _userService.GetUserDetailsByIdAsync(userId));
+    }
+
+    [Authorize]
+    [HttpGet("all-users")]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var adminDetails = await _userService.GetUserDetailsByIdAsync(userId.Value);
+
+        if (adminDetails.Roles[0] != "Admin" && adminDetails.Roles[0] != "Staff")
+        {
+            return StatusCode(403, new { 
+                success = false, 
+                message = "You don't have permission to view this order",
+                requiredRoles = new[] { "Admin", "Staff" }
+            });
+        }
+
+        var userDetails = _userService.GetAllUsers();
+
+        return Ok(new { success = true, userDetails });       
+    }
+    
+    
+    private Guid? GetUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 
+                          User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }

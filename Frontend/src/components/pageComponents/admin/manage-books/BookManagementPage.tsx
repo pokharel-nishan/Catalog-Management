@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trash2, Edit, Eye, BookOpen } from 'lucide-react';
+import { Trash2, Edit, Eye } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -14,11 +14,12 @@ import { Button } from '../../../ui/button';
 import { Card, CardContent } from '../../../ui/card';
 import { Label } from '../../../ui/label';
 import { Checkbox } from '../../../ui/checkbox';
+import { useAuth } from '../../../../context/AuthContext';
+import apiClient from '../../../../api/config';
 
 interface Book {
   bookId: string;
   isbn: string;
-  userId: string;
   title: string;
   author: string;
   publisher: string;
@@ -57,6 +58,18 @@ const formatDateForInput = (dateString: string | null) => {
   }
 };
 
+// Format date for API requests (ISO format)
+const formatDateForAPI = (dateString: string | null) => {
+  if (!dateString) return new Date().toISOString();
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return new Date().toISOString();
+    return date.toISOString();
+  } catch (e) {
+    return new Date().toISOString();
+  }
+};
+
 // Get today's date in YYYY-MM-DD format
 const getTodayFormatted = () => {
   const today = new Date();
@@ -66,86 +79,16 @@ const getTodayFormatted = () => {
   return `${year}-${month}-${day}`;
 };
 
-const mockBookData: Book[] = [
-  {
-    bookId: '1',
-    isbn: '9780123456789',
-    userId: '1',
-    title: 'The Great Adventure',
-    author: 'John Smith',
-    publisher: 'Book Press',
-    publicationDate: '2023-01-15',
-    genre: 'Fiction',
-    language: 'English',
-    format: 'Paperback',
-    description: 'An exciting adventure novel about exploration and discovery.',
-    price: 19.99,
-    stock: 25,
-    imageURL: '/books/great-adventure.jpg',
-    discount: 0.1,
-    discountStartDate: '2025-04-01',
-    discountEndDate: '2025-05-31',
-    arrivalDate: '2023-01-10'
-  },
-  {
-    bookId: '2',
-    isbn: '9780987654321',
-    userId: '2',
-    title: 'The Secret Code',
-    author: 'Jane Doe',
-    publisher: 'Mystery Books',
-    publicationDate: '2024-03-20',
-    genre: 'Mystery',
-    language: 'English',
-    format: 'Hardcover',
-    description: 'A thrilling mystery novel with unexpected twists.',
-    price: 24.99,
-    stock: 15,
-    imageURL: '/books/secret-code.jpg',
-    discount: 0,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: '2024-03-15'
-  },
-  {
-    bookId: '3',
-    isbn: '9781122334455',
-    userId: '1',
-    title: 'Learn React',
-    author: 'Dev Expert',
-    publisher: 'Tech Publications',
-    publicationDate: '2024-01-10',
-    genre: 'Technology',
-    language: 'English',
-    format: 'eBook',
-    description: 'Comprehensive guide to modern React development.',
-    price: 29.99,
-    stock: 50,
-    imageURL: '/books/learn-react.jpg',
-    discount: 0.15,
-    discountStartDate: '2025-04-15',
-    discountEndDate: '2025-06-15',
-    arrivalDate: '2024-01-05'
-  }
-];
-
-const mockServices = {
-  getAllBooks: (): Promise<Book[]> => new Promise(resolve => setTimeout(() => resolve(mockBookData), 500)),
-  addBook: (newBook: Omit<Book, 'bookId'>): Promise<Book> => 
-    new Promise(resolve => setTimeout(() => resolve({ ...newBook, bookId: Math.random().toString(36).substring(2, 9) }), 500)),
-  updateBook: (updatedBook: Book): Promise<Book> => new Promise(resolve => setTimeout(() => resolve(updatedBook), 500)),
-  deleteBook: (bookId: string): Promise<void> => new Promise(resolve => setTimeout(() => resolve(), 500)),
-};
-
 export const AdminBookManagement = () => {
+  const { user } = useAuth();
+  
   const [books, setBooks] = useState<Book[]>([]);
-  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, mode: 'view', selectedBook: null });
   const [enableDiscount, setEnableDiscount] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [bookForm, setBookForm] = useState<Omit<Book, 'bookId'>>({
     isbn: '',
-    userId: '1', // Default user ID
     title: '',
     author: '',
     publisher: '',
@@ -163,35 +106,163 @@ export const AdminBookManagement = () => {
     arrivalDate: getTodayFormatted()
   });
 
-  useEffect(() => {
-    mockServices.getAllBooks()
-      .then(data => {
-        setBooks(data);
-        setFilteredBooks(data);
-      })
-      .catch(() => toast.error('Failed to fetch books'));
-  }, []);
+  // API Services
+  const apiServices = {
+    getAllBooks: async (): Promise<Book[]> => {
+      setIsLoading(true);
+      try {
+        const response = await apiClient.get('/Book/getAllBooks');
+        return response.data;
+      } catch (error: any) {
+        console.error('Error fetching books:', error.response?.data);
+        if (error.response) {
+          if (error.response.status === 401) {
+            toast.error('Unauthorized: Admin access required.');
+          } else if (error.response.status === 403) {
+            toast.error('Forbidden: Insufficient permissions.');
+          } else {
+            toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Unknown error'}`);
+          }
+        } else if (error.request) {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to fetch books: ' + error.message);
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    
+    addBook: async (newBook: Omit<Book, 'bookId'>): Promise<Book> => {
+      setIsLoading(true);
+      try {
+        const bookData = {
+          isbn: newBook.isbn,
+          title: newBook.title,
+          author: newBook.author,
+          publisher: newBook.publisher,
+          publicationDate: formatDateForAPI(newBook.publicationDate),
+          genre: newBook.genre,
+          language: newBook.language,
+          format: newBook.format,
+          description: newBook.description,
+          price: newBook.price,
+          stock: newBook.stock,
+          imageURL: newBook.imageURL || '',
+          discount: enableDiscount ? newBook.discount : 0,
+          discountStartDate: formatDateForAPI(newBook.discountStartDate || getTodayFormatted()),
+          discountEndDate: formatDateForAPI(newBook.discountEndDate || getTodayFormatted()),
+          arrivalDate: formatDateForAPI(newBook.arrivalDate)
+        };
+        console.log('Adding book with data:', bookData);
+        const response = await apiClient.post('/Book/addBook', bookData);
+        return response.data;
+      } catch (error: any) {
+        console.error('Error adding book:', error.response?.data);
+        if (error.response) {
+          toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to add book'}`);
+        } else if (error.request) {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to add book: ' + error.message);
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    
+    updateBook: async (updatedBook: Book): Promise<Book> => {
+      setIsLoading(true);
+      try {
+        const bookData = {
+          bookId: updatedBook.bookId,
+          isbn: updatedBook.isbn,
+          title: updatedBook.title,
+          author: updatedBook.author,
+          publisher: updatedBook.publisher,
+          publicationDate: formatDateForAPI(updatedBook.publicationDate),
+          genre: updatedBook.genre,
+          language: updatedBook.language,
+          format: updatedBook.format,
+          description: updatedBook.description,
+          price: updatedBook.price,
+          stock: updatedBook.stock,
+          imageURL: updatedBook.imageURL || '',
+          discount: enableDiscount ? updatedBook.discount : 0,
+          discountStartDate: formatDateForAPI(updatedBook.discountStartDate || getTodayFormatted()),
+          discountEndDate: formatDateForAPI(updatedBook.discountEndDate || getTodayFormatted()),
+          arrivalDate: formatDateForAPI(updatedBook.arrivalDate)
+        };
+        console.log('Updating book with data:', bookData);
+        const response = await apiClient.put(`/Book/updateBookDetails/${updatedBook.bookId}`, bookData);
+        return response.data;
+      } catch (error: any) {
+        console.error('Error updating book:', error.response?.data);
+        if (error.response) {
+          toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to update book'}`);
+        } else if (error.request) {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to update book: ' + error.message);
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    
+    deleteBook: async (bookId: string): Promise<void> => {
+      setIsLoading(true);
+      try {
+        await apiClient.delete(`/Book/deleteBook/${bookId}`);
+        toast.success('Book deleted successfully');
+      } catch (error: any) {
+        console.error('Error deleting book:', error.response?.data);
+        if (error.response) {
+          toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to delete book'}`);
+        } else if (error.request) {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to delete book: ' + error.message);
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+  };
 
   useEffect(() => {
-    setFilteredBooks(
-      books.filter(b => 
-        `${b.title} ${b.author} ${b.isbn} ${b.publisher} ${b.genre}`.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [searchTerm, books]);
+    if (!user) {
+      toast.error('You must be logged in to access book management');
+    } else {
+      console.log('Authenticated user:', user);
+      fetchBooks();
+    }
+  }, [user]);
+
+  const fetchBooks = async () => {
+    try {
+      const data = await apiServices.getAllBooks();
+      setBooks(data);
+    } catch (error) {
+      // Error handled in getAllBooks
+    }
+  };
 
   useEffect(() => {
     if (dialogState.selectedBook && dialogState.mode === 'edit') {
       const book = dialogState.selectedBook;
       setBookForm({
         isbn: book.isbn,
-        userId: book.userId,
         title: book.title,
         author: book.author,
         publisher: book.publisher,
         publicationDate: book.publicationDate,
         genre: book.genre,
-        language: book.language, 
+        language: book.language,
         format: book.format,
         description: book.description,
         price: book.price,
@@ -206,7 +277,6 @@ export const AdminBookManagement = () => {
     } else if (dialogState.mode === 'add') {
       setBookForm({
         isbn: '',
-        userId: '1',
         title: '',
         author: '',
         publisher: '',
@@ -229,23 +299,23 @@ export const AdminBookManagement = () => {
 
   const handleAddBook = async (newBook: Omit<Book, 'bookId'>) => {
     try {
-      const book = await mockServices.addBook(newBook);
+      const book = await apiServices.addBook(newBook);
       setBooks(prev => [book, ...prev]);
       toast.success('Book added successfully');
       closeDialog();
     } catch {
-      toast.error('Failed to add book');
+      // Error handled in addBook
     }
   };
 
   const handleUpdateBook = async (updatedBook: Book) => {
     try {
-      const book = await mockServices.updateBook(updatedBook);
+      const book = await apiServices.updateBook(updatedBook);
       setBooks(prev => prev.map(b => b.bookId === book.bookId ? book : b));
       toast.success('Book updated successfully');
       closeDialog();
     } catch {
-      toast.error('Failed to update book');
+      // Error handled in updateBook
     }
   };
 
@@ -254,11 +324,10 @@ export const AdminBookManagement = () => {
     if (!confirmDelete) return;
     
     try {
-      await mockServices.deleteBook(bookId);
+      await apiServices.deleteBook(bookId);
       setBooks(prev => prev.filter(b => b.bookId !== bookId));
-      toast.success('Book deleted successfully');
     } catch {
-      toast.error('Failed to delete book');
+      // Error handled in deleteBook
     }
   };
 
@@ -275,14 +344,33 @@ export const AdminBookManagement = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Handle disabled discount fields
+    // Validation
+    const requiredFields = ['isbn', 'title', 'author', 'publisher', 'genre', 'language', 'format', 'description'];
+    for (const field of requiredFields) {
+      if (!bookForm[field as keyof typeof bookForm]) {
+        toast.error(`Please fill in the ${field} field`);
+        return;
+      }
+    }
+    if (bookForm.price < 0 || bookForm.stock < 0) {
+      toast.error('Price and stock must be non-negative');
+      return;
+    }
+    if (enableDiscount && (bookForm.discount <= 0 || !bookForm.discountStartDate || !bookForm.discountEndDate)) {
+      toast.error('Please provide valid discount details');
+      return;
+    }
+
     const submissionData = {
       ...bookForm,
+      imageURL: bookForm.imageURL || '',
       discount: enableDiscount ? bookForm.discount : 0,
-      discountStartDate: enableDiscount ? bookForm.discountStartDate : null,
-      discountEndDate: enableDiscount ? bookForm.discountEndDate : null
+      discountStartDate: enableDiscount ? bookForm.discountStartDate : getTodayFormatted(),
+      discountEndDate: enableDiscount ? bookForm.discountEndDate : getTodayFormatted()
     };
-    
+
+    console.log('Submitting book data:', submissionData);
+
     if (dialogState.mode === 'add') {
       handleAddBook(submissionData);
     } else if (dialogState.mode === 'edit' && dialogState.selectedBook) {
@@ -311,6 +399,19 @@ export const AdminBookManagement = () => {
     
     return now >= startDate && now <= endDate;
   };
+
+  // Check if user is authenticated
+  if (!user) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">Authentication Required</h2>
+          <p className="text-gray-500">Please login to access the book management system.</p>
+          <Button className="mt-4" onClick={() => window.location.href = '/login'}>Go to Login</Button>
+        </div>
+      </div>
+    );
+  }
 
   const BookCard = ({ book }: { book: Book }) => {
     const discountActive = isDiscountActive(book);
@@ -579,13 +680,14 @@ export const AdminBookManagement = () => {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">Description *</Label>
           <textarea
             id="description"
             name="description"
             className="w-full px-3 py-2 border rounded-md h-24"
             value={bookForm.description}
             onChange={handleFormChange}
+            required
           ></textarea>
         </div>
         
@@ -648,8 +750,10 @@ export const AdminBookManagement = () => {
         </div>
         
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={closeDialog}>Cancel</Button>
-          <Button type="submit">{mode === 'add' ? 'Add Book' : 'Update Book'}</Button>
+          <Button type="button" variant="outline" onClick={closeDialog} disabled={isLoading}>Cancel</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Processing...' : mode === 'add' ? 'Add Book' : 'Update Book'}
+          </Button>
         </DialogFooter>
       </form>
     );
@@ -661,7 +765,7 @@ export const AdminBookManagement = () => {
       
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Book Management</h2>
-        <Button onClick={() => setDialogState({ isOpen: true, mode: 'add', selectedBook: null })}>
+        <Button onClick={() => setDialogState({ isOpen: true, mode: 'add', selectedBook: null })} disabled={isLoading}>
           Add New Book
         </Button>
       </div>
@@ -676,19 +780,21 @@ export const AdminBookManagement = () => {
         />
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredBooks.map(book => (
-          <BookCard key={book.bookId} book={book} />
-        ))}
-        
-        {filteredBooks.length === 0 && (
-          <div className="col-span-full text-center py-12">
-            <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No books found</h3>
-            <p className="mt-1 text-gray-500">Try adjusting your search or add a new book.</p>
-          </div>
-        )}
-      </div>
+      {books.length > 0 ? (
+        <div className="space-y-4">
+          {books
+            .filter(book =>
+              book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              book.isbn.includes(searchTerm)
+            )
+            .map(book => (
+              <BookCard key={book.bookId} book={book} />
+            ))}
+        </div>
+      ) : (
+        <p className="text-gray-500">No books found.</p>
+      )}
       
       <Dialog open={dialogState.isOpen} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="max-w-3xl">
