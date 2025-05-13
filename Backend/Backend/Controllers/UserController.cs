@@ -82,7 +82,9 @@ public class UserController : ControllerBase
                     Message = "Login successful",
                     Token = token,
                     UserId = userDetails.Id,
-                    Roles = userDetails.Roles
+                    userDetails.Roles,
+                    userDetails.FirstName,
+                    userDetails.LastName,
                 });
             }
 
