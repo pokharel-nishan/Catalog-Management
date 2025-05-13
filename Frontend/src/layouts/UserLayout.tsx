@@ -8,7 +8,7 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const UserLayout: React.FC<LayoutProps> = ({ children }) => {
   const { user } = useContext(AuthContext);
 
   const isLoggedIn = !!user;
@@ -32,4 +32,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default Layout;
+export default UserLayout;

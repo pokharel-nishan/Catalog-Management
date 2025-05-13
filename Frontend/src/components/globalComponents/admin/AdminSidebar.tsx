@@ -12,6 +12,7 @@ import {
   LogOut,
   UserCheck,
 } from "lucide-react";
+import LogoutModal from "../../modals/LogoutModal";
 
 type SidebarAdminProps = {
   sidebarOpen: boolean;
@@ -24,6 +25,11 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
 }) => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const handleLogoutClick = () => {
+    setIsLogoutModalOpen(true);
+  };
 
   const menuItems = [
     {
@@ -85,21 +91,32 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
         <ul className="space-y-1">
           {menuItems.map(({ label, icon, route, isLogout }) => {
             const isActive = location.pathname === route;
+
             return (
               <li key={route}>
-                <Link
-                  to={route}
-                  className={`flex items-center justify-start gap-3 px-4 py-2 text-sm rounded-md transition-colors ${
-                    isActive
-                      ? "bg-blue-100 text-blue-700"
-                      : isLogout
-                      ? "text-red-500 hover:bg-red-50"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {icon}
-                  {(sidebarOpen || isMobile) && <span>{label}</span>}
-                </Link>
+                {isLogout ? (
+                  <div
+                    onClick={handleLogoutClick}
+                    className={`flex items-center justify-start gap-3 px-4 py-2 text-sm rounded-md transition-colors cursor-pointer ${
+                      "text-red-500 hover:bg-red-50"
+                    }`}
+                  >
+                    {icon}
+                    {(sidebarOpen || isMobile) && <span>{label}</span>}
+                  </div>
+                ) : (
+                  <Link
+                    to={route}
+                    className={`flex items-center justify-start gap-3 px-4 py-2 text-sm rounded-md transition-colors ${
+                      isActive
+                        ? "bg-blue-100 text-blue-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {icon}
+                    {(sidebarOpen || isMobile) && <span>{label}</span>}
+                  </Link>
+                )}
               </li>
             );
           })}
@@ -146,6 +163,11 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
       >
         <SidebarContent isMobile={false} />
       </div>
+
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        closeModal={() => setIsLogoutModalOpen(false)}
+      />
     </>
   );
 };

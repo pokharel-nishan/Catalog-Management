@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { sampleOrders } from "../../../../data/order";
-import AccLayout from "../UserSidebar";
 import type { OrderType } from "../../../../types/order";
 
 const TABS = ["All", "Processed Order", "Delivered", "Cancelled"] as const;
@@ -161,7 +160,6 @@ const MyOrders = () => {
 
   return (
     <main className="bg-gray-50 min-h-screen">
-      <AccLayout>
         <section>
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center">
             <div className="flex flex-wrap space-x-2 lg:space-x-4 mb-4 lg:mb-0">
@@ -225,7 +223,6 @@ const MyOrders = () => {
             renderOrders(filteredOrders())
           )}
         </section>
-      </AccLayout>
     </main>
   );
 };
