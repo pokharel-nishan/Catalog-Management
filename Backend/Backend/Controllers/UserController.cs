@@ -15,7 +15,6 @@ public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
 
-
     public UserController(IUserService userService, SignInManager<User> signInManager)
     {
         _userService = userService;

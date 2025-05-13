@@ -75,6 +75,9 @@ namespace Backend.Services
             if (updateBookDTO.Price.HasValue) book.Price = updateBookDTO.Price.Value;
             if (updateBookDTO.Stock.HasValue) book.Stock = updateBookDTO.Stock.Value;
             if (updateBookDTO.Discount.HasValue) book.Discount = updateBookDTO.Discount.Value;
+            if (updateBookDTO.DiscountStartDate.HasValue) book.DiscountStartDate = updateBookDTO.DiscountStartDate.Value;
+            if (updateBookDTO.DiscountEndDate.HasValue) book.DiscountEndDate = updateBookDTO.DiscountEndDate.Value;
+            if (updateBookDTO.ArrivalDate.HasValue) book.ArrivalDate = updateBookDTO.ArrivalDate.Value;
 
             return await _bookRepository.UpdateBookDetailsAsync(book);
 
@@ -84,9 +87,9 @@ namespace Backend.Services
         {
             return await _bookRepository.DeleteBookAsync(bookId);
         }
-        
+
         public async Task<PaginatedResponseDTO<BookSummaryDTO>> GetPaginatedBooksAsync(
-            BookPaginationQueryDTO pagination, 
+            BookPaginationQueryDTO pagination,
             BookFilterDTO filters)
         {
             try
@@ -98,7 +101,7 @@ namespace Backend.Services
                 var (books, totalCount) = await _bookRepository.GetFilteredBooksAsync(
                     skip,
                     pagination.PageSize,
-                    filters.SearchTerm, 
+                    filters.SearchTerm,
                     filters.Author,
                     filters.Genre,
                     filters.Publisher,
@@ -150,7 +153,7 @@ namespace Backend.Services
             try
             {
                 var book = await _bookRepository.GetBookByIdAsync(bookId);
-                
+
                 if (book == null)
                 {
                     return null;
@@ -180,11 +183,11 @@ namespace Backend.Services
                 return null;
             }
         }
-        
+
         public async Task<BookFilterDetailsDto> GetBookFilterDetailsAsync()
         {
             var allBooks = await _bookRepository.GetAllBooksAsync();
-            
+
             var filterOptions = new BookFilterDetailsDto
             {
                 Genres = allBooks.Select(b => b.Genre).Distinct().OrderBy(g => g).ToList(),

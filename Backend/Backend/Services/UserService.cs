@@ -17,11 +17,14 @@ public class UserService : IUserService
     private readonly IConfiguration _configuration;
     private readonly IUserRepository _userRepository;
     private readonly UserManager<User> _userManager;
+    private readonly ICartService _cartService;
 
-    public UserService(IUserRepository userRepository, UserManager<User> userManager, IConfiguration configuration)
+
+    public UserService(IUserRepository userRepository, UserManager<User> userManager, IConfiguration configuration, ICartService cartService)
     {
         _userRepository = userRepository;
         _userManager = userManager;
+        _cartService = cartService;
         _configuration = configuration;
     }
 
@@ -42,7 +45,18 @@ public class UserService : IUserService
             UserName = registerDto.Email
         };
 
-        return await _userRepository.CreateUserAsync(user, registerDto.Password);
+        var createdUser = await _userRepository.CreateUserAsync(user, registerDto.Password);
+        
+        try
+        {
+            await _cartService.CreateCartForUserAsync(createdUser.Id);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("User registration completed but cart creation failed", ex);
+        }
+
+        return createdUser;
     }
 
     public async Task<User> CreateStaffUserAsync(AddStaffUserDTO addStaffUserDTO)
