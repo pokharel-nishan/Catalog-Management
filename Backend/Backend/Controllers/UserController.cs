@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Backend.DTOs.Admin.Staff;
 using Backend.DTOs.Common;
 using Backend.DTOs.User;
@@ -6,6 +7,7 @@ using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Backend.Controllers;
 
@@ -98,8 +100,19 @@ public class UserController : ControllerBase
 
     [Authorize]
     [HttpGet("me")]
-    public IActionResult GetCurrentUser()
+    public async Task<IActionResult> GetCurrentUser()
     {
-        return Ok(new { Message = "You are authenticated", UserId = User.Identity.Name });
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var userDetails = await _userService.GetUserDetailsByIdAsync(userId.Value);
+        return Ok(new {success = true,  userDetails});
+    }
+    
+    private Guid? GetUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? 
+                          User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }
