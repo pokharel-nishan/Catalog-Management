@@ -1,19 +1,35 @@
 import { useEffect } from "react";
-import { startConnection, stopConnection, refreshAnnouncements } from '../announcementHub.ts';
+import { startConnection, stopConnection } from "../announcementHub";
+import { useAuth } from "../context/AuthContext";
 
 const AnnouncementManager = () => {
+  const { user } = useAuth();
+
+  const userId =
+    user?.id ||
+    (() => {
+      const storedUser = localStorage.getItem("authUser");
+      if (!storedUser) return null;
+      try {
+        return JSON.parse(storedUser).id;
+      } catch {
+        return null;
+      }
+    })();
+
+  const userToken =
+    "Bearer " + user?.token ? user?.token : localStorage.getItem("token");
+
   useEffect(() => {
-    startConnection();
+    if (userId && userToken) {
+      // Start connection with user ID and token
+      startConnection(userId, userToken);
 
-    const interval = setInterval(() => {
-      refreshAnnouncements();
-    }, 30000);
-
-    return () => {
-      stopConnection();
-      clearInterval(interval);
-    };
-  }, []);
+      return () => {
+        stopConnection();
+      };
+    }
+  }, [userId, userToken]);
 
   return null;
 };

@@ -181,5 +181,14 @@ namespace Backend.Repositories
                 : query.OrderBy(keySelector);
         }
     
+        public async Task<List<Book>> GetBooksByOrderIdAsync(Guid orderId)
+        {
+            return await _context.OrderBooks
+                .Where(ob => ob.OrderId == orderId)
+                .Include(ob => ob.Book) 
+                .Select(ob => ob.Book)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }

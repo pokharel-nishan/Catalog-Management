@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 using Backend.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Repositories;
 
@@ -10,11 +11,13 @@ public class UserRepository : IUserRepository
 {
     private readonly UserManager<User> _userManager;
     private readonly SignInManager<User> _signInManager;
+    private readonly ApplicationDbContext _context;
 
-    public UserRepository(UserManager<User> userManager, SignInManager<User> signInManager)
+    public UserRepository(UserManager<User> userManager, SignInManager<User> signInManager, ApplicationDbContext context)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _context = context;
     }
 
     public async Task<User> CreateUserAsync(User user, string password)
@@ -92,5 +95,12 @@ public class UserRepository : IUserRepository
     public async Task<List<User>> GetAllStaffUsersAsync()
     {
         return (await _userManager.GetUsersInRoleAsync("Staff")).ToList();
+    }
+    
+    public async Task<User?> GetUserByIdAsync(Guid userId)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
     }
 }
