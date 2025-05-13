@@ -29,6 +29,7 @@ namespace Backend.Services
                     Genre = addBookDTO.Genre,
                     Language = addBookDTO.Language,
                     Format = addBookDTO.Format,
+                    ImageURL = addBookDTO.ImageURL,
                     Description = addBookDTO.Description,
                     Price = addBookDTO.Price,
                     Stock = addBookDTO.Stock,
