@@ -1,17 +1,119 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import type { WishlistItem } from "../../../../data/wishlist";
-import { wishlist as initialWishlist } from "../../../../data/wishlist";
 import AccLayout from "../UserSidebar";
+import apiClient from "../../../../api/config";
+import { useAuth } from "../../../../context/AuthContext";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { jwtDecode } from "jwt-decode"; // Import jwt-decode
 
 type SortOption = "alphabetical" | "date-newest" | "date-oldest";
 
-const UserWishlist = () => {
-  const [wishlist, setWishlist] = useState<WishlistItem[]>(initialWishlist);
-  const [sortOption, setSortOption] = useState<SortOption>("date-newest");
+interface DecodedToken {
+  exp: number;
+  sub?: string;
+  nameid?: string;
+}
 
-  const handleRemoveFromWishlist = (bookId: string) => {
-    setWishlist(wishlist.filter((book) => book.id !== bookId));
+const UserWishlist = () => {
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [sortOption, setSortOption] = useState<SortOption>("date-newest");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  console.log("User object on mount:", user); // Debug user object
+
+  const isTokenExpired = (token: string): boolean => {
+    try {
+      const decoded: DecodedToken = jwtDecode(token);
+      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+      console.log("Token expiration (exp):", decoded.exp, "Current time:", currentTime);
+      return decoded.exp < currentTime;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return true; // Treat as expired if decoding fails
+    }
+  };
+
+  // Fetch wishlist from backend
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      console.log("Fetching wishlist, user:", user); // Debug before fetch
+      if (!user) {
+        console.log("No user found, setting error.");
+        setError("Please log in to view your wishlist.");
+        setLoading(false);
+        return;
+      }
+
+      if (isTokenExpired(user.token)) {
+        console.log("Token expired, logging out.");
+        setError("Session expired. Please log in again.");
+        logout();
+        navigate("/login");
+        return;
+      }
+
+      try {
+        const response = await apiClient.get(`/Bookmark/my-books`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        console.log("Wishlist response:", response.data); // Debug response
+        setWishlist(response.data); // Adjust based on actual response structure
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { status?: number; data?: any } };
+        console.error("Failed to fetch wishlist:", axiosError.response?.data);
+        if (axiosError.response?.status === 401) {
+          setError("Session expired. Please log in again.");
+          logout();
+          navigate("/login");
+        } else if (axiosError.response?.status === 404) {
+          console.log("Endpoint not found. Check API route.");
+          setError("Failed to load wishlist. Please try again later.");
+        } else {
+          setError("Failed to load wishlist. Please try again later.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishlist();
+  }, [user, logout, navigate]);
+
+  const handleRemoveFromWishlist = async (bookId: string) => {
+    if (!user) {
+      setError("Please log in to remove items from your wishlist.");
+      return;
+    }
+
+    if (isTokenExpired(user.token)) {
+      setError("Session expired. Please log in again.");
+      logout();
+      navigate("/login");
+      return;
+    }
+
+    try {
+      await apiClient.post(`/Bookmark/toggle/${bookId}`, {}, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setWishlist(wishlist.filter((book) => book.id !== bookId));
+      toast.success("Item removed from wishlist!");
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number; data?: any } };
+      console.error("Failed to remove from wishlist:", axiosError.response?.data);
+      if (axiosError.response?.status === 401) {
+        setError("Session expired. Please log in again.");
+        logout();
+        navigate("/login");
+      } else {
+        setError("Failed to remove item. Please try again.");
+      }
+    }
   };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -31,9 +133,40 @@ const UserWishlist = () => {
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
     }
-
     setWishlist(sortedWishlist);
   };
+
+  if (loading) {
+    return (
+      <main className="bg-gray-50 min-h-screen">
+        <AccLayout>
+          <section className="container mx-auto py-10 text-center">
+            <p className="text-gray-600">Loading wishlist...</p>
+          </section>
+        </AccLayout>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="bg-gray-50 min-h-screen">
+        <AccLayout>
+          <section className="container mx-auto py-10 text-center">
+            <p className="text-red-600">{error}</p>
+            {error.includes("log in") && (
+              <Link
+                to="/login"
+                className="mt-4 inline-block text-primary hover:underline"
+              >
+                Go to Login
+              </Link>
+            )}
+          </section>
+        </AccLayout>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-gray-50 min-h-screen">
@@ -88,7 +221,7 @@ const UserWishlist = () => {
                     <p className="text-sm text-gray-500">by {book.author}</p>
                     <div className="flex items-center mt-2">
                       <span className="text-yellow-500">
-                        {"★".repeat(book.rating)}
+                        {"★".repeat(book.rating ?? 0)}
                       </span>
                       <span className="ml-2 text-gray-400">
                         ({book.voters ?? 0} votes)

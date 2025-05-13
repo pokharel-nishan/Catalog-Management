@@ -5,6 +5,7 @@ import { Badge } from '../../ui/badge';
 import { Input } from '../../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '../../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
+import apiClient from '../../../api/config';
 
 interface Announcement {
   announcementId: string;
@@ -14,50 +15,6 @@ interface Announcement {
   expiryDate: string;
 }
 
-// Mock data - in a real application, this would be fetched from an API
-const mockAnnouncementData: Announcement[] = [
-  {
-    announcementId: '1',
-    userId: '1',
-    description: 'Summer reading sale! 20% off all fiction books until June 30th.',
-    postedAt: '2025-05-01T10:30:00',
-    expiryDate: '2025-06-30T23:59:59'
-  },
-  {
-    announcementId: '2',
-    userId: '1',
-    description: 'New book arrivals this week! Check out our latest collection of mystery novels.',
-    postedAt: '2025-05-05T14:15:00',
-    expiryDate: '2025-05-19T23:59:59'
-  },
-  {
-    announcementId: '3',
-    userId: '2',
-    description: 'Author signing event on May 20th. Meet bestselling author Jane Smith at our main branch from 2-4pm.',
-    postedAt: '2025-05-10T09:00:00',
-    expiryDate: '2025-05-20T16:00:00'
-  },
-  {
-    announcementId: '4',
-    userId: '1',
-    description: 'Our online reservation system will be under maintenance on May 15th from 10pm to 1am. We apologize for any inconvenience.',
-    postedAt: '2025-05-11T18:45:00',
-    expiryDate: '2025-05-16T01:00:00'
-  },
-  {
-    announcementId: '5',
-    userId: '3',
-    description: 'Join our monthly book club meeting on May 25th at 7pm. This month we\'re discussing "The Silent Patient" by Alex Michaelides.',
-    postedAt: '2025-05-12T08:30:00',
-    expiryDate: '2025-05-25T21:00:00'
-  }
-];
-
-const mockServices = {
-  getPublicAnnouncements: (): Promise<Announcement[]> => 
-    new Promise(resolve => setTimeout(() => resolve(mockAnnouncementData), 500))
-};
-
 export const PublicAnnouncementPage = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [filteredAnnouncements, setFilteredAnnouncements] = useState<Announcement[]>([]);
@@ -66,21 +23,34 @@ export const PublicAnnouncementPage = () => {
 
   useEffect(() => {
     setLoading(true);
-    mockServices.getPublicAnnouncements()
-      .then(data => {
+    apiClient
+      .get('/Announcement/getAllAnnouncements')
+      .then((response) => {
+        console.log('API Response:', response.data);
+        const fetchedAnnouncements = Array.isArray(response.data) ? response.data : [];
+        const mappedAnnouncements = fetchedAnnouncements.map((a: any) => ({
+          announcementId: a.announcementId,
+          userId: a.userId,
+          description: a.description,
+          postedAt: new Date(a.postedAt).toISOString(),
+          expiryDate: new Date(a.expiryDate).toISOString(),
+        }));
+
         // Filter to only show active announcements
-        const activeAnnouncements = data.filter(announcement => 
-          new Date(announcement.expiryDate) > new Date()
-        ).sort((a, b) => 
-          // Sort by posted date (newest first)
+        const now = new Date();
+        const activeAnnouncements = mappedAnnouncements.filter((announcement) => {
+          const postedAt = new Date(announcement.postedAt);
+          const expiryDate = new Date(announcement.expiryDate);
+          return postedAt <= now && expiryDate > now;
+        }).sort((a, b) => 
           new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()
         );
-        
+
         setAnnouncements(activeAnnouncements);
         setFilteredAnnouncements(activeAnnouncements);
         setLoading(false);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Failed to fetch announcements:', error);
         setLoading(false);
       });
@@ -91,22 +61,21 @@ export const PublicAnnouncementPage = () => {
       setFilteredAnnouncements(announcements);
     } else {
       setFilteredAnnouncements(
-        announcements.filter(a => 
+        announcements.filter((a) =>
           a.description.toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
     }
   }, [searchTerm, announcements]);
 
-  // Group announcements by urgency
-  const urgentAnnouncements = filteredAnnouncements.filter(a => {
+  const urgentAnnouncements = filteredAnnouncements.filter((a) => {
     const expiryDate = new Date(a.expiryDate);
     const threeDaysFromNow = new Date();
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
     return expiryDate <= threeDaysFromNow;
   });
 
-  const regularAnnouncements = filteredAnnouncements.filter(a => {
+  const regularAnnouncements = filteredAnnouncements.filter((a) => {
     const expiryDate = new Date(a.expiryDate);
     const threeDaysFromNow = new Date();
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
@@ -118,7 +87,7 @@ export const PublicAnnouncementPage = () => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -128,7 +97,7 @@ export const PublicAnnouncementPage = () => {
     const expiry = new Date(expiryDate);
     const timeDiff = expiry.getTime() - now.getTime();
     const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-    
+
     if (daysDiff === 0) return 'Expires today';
     if (daysDiff === 1) return 'Expires tomorrow';
     return `Expires in ${daysDiff} days`;
@@ -144,13 +113,13 @@ export const PublicAnnouncementPage = () => {
             ) : (
               <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-1" />
             )}
-            
+
             <div className="flex-1">
               <div className="flex justify-between items-center mb-2">
                 <p className="text-xs text-gray-500">Posted on {formatDate(announcement.postedAt)}</p>
-                <Badge 
-                  variant="outline" 
-                  className={isUrgent ? "text-orange-600 border-orange-300" : "text-blue-600 border-blue-300"}
+                <Badge
+                  variant="outline"
+                  className={isUrgent ? 'text-orange-600 border-orange-300' : 'text-blue-600 border-blue-300'}
                 >
                   {getDaysRemaining(announcement.expiryDate)}
                 </Badge>
@@ -169,7 +138,7 @@ export const PublicAnnouncementPage = () => {
         <Megaphone className="h-8 w-8 text-primary" />
         <h1 className="text-2xl font-bold">Announcements</h1>
       </div>
-      
+
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -187,7 +156,7 @@ export const PublicAnnouncementPage = () => {
                   className="max-w-lg"
                 />
               </div>
-              
+
               {filteredAnnouncements.length > 0 ? (
                 <Tabs defaultValue="all" className="w-full">
                   <TabsList className="mb-4">
@@ -196,7 +165,7 @@ export const PublicAnnouncementPage = () => {
                       <TabsTrigger value="urgent">Urgent ({urgentAnnouncements.length})</TabsTrigger>
                     )}
                   </TabsList>
-                  
+
                   <TabsContent value="all" className="space-y-4">
                     {urgentAnnouncements.length > 0 && (
                       <div className="space-y-4 mb-6">
@@ -204,38 +173,38 @@ export const PublicAnnouncementPage = () => {
                           <AlertCircle className="h-5 w-5" />
                           Time-Sensitive Announcements
                         </h2>
-                        {urgentAnnouncements.map(announcement => (
-                          <AnnouncementCard 
-                            key={announcement.announcementId} 
-                            announcement={announcement} 
-                            isUrgent={true} 
+                        {urgentAnnouncements.map((announcement) => (
+                          <AnnouncementCard
+                            key={announcement.announcementId}
+                            announcement={announcement}
+                            isUrgent={true}
                           />
                         ))}
                       </div>
                     )}
-                    
+
                     {regularAnnouncements.length > 0 && (
                       <div className="space-y-4">
                         <h2 className="text-lg font-medium text-blue-700 flex items-center gap-2">
                           <Info className="h-5 w-5" />
                           General Announcements
                         </h2>
-                        {regularAnnouncements.map(announcement => (
-                          <AnnouncementCard 
-                            key={announcement.announcementId} 
-                            announcement={announcement} 
+                        {regularAnnouncements.map((announcement) => (
+                          <AnnouncementCard
+                            key={announcement.announcementId}
+                            announcement={announcement}
                           />
                         ))}
                       </div>
                     )}
                   </TabsContent>
-                  
+
                   <TabsContent value="urgent" className="space-y-4">
-                    {urgentAnnouncements.map(announcement => (
-                      <AnnouncementCard 
-                        key={announcement.announcementId} 
-                        announcement={announcement} 
-                        isUrgent={true} 
+                    {urgentAnnouncements.map((announcement) => (
+                      <AnnouncementCard
+                        key={announcement.announcementId}
+                        announcement={announcement}
+                        isUrgent={true}
                       />
                     ))}
                   </TabsContent>
