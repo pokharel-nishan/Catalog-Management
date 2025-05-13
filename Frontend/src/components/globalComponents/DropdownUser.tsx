@@ -8,7 +8,7 @@ export const DropdownUser: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

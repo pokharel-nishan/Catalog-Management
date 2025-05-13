@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { Trash2, Edit, Eye, BookOpen } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -14,6 +15,7 @@ import { Button } from '../../../ui/button';
 import { Card, CardContent } from '../../../ui/card';
 import { Label } from '../../../ui/label';
 import { Checkbox } from '../../../ui/checkbox';
+import { useAuth } from '../../../../context/AuthContext';
 
 interface Book {
   bookId: string;
@@ -57,6 +59,17 @@ const formatDateForInput = (dateString: string | null) => {
   }
 };
 
+// Format date for API requests (ISO format)
+const formatDateForAPI = (dateString: string | null) => {
+  if (!dateString) return null;
+  
+  try {
+    return new Date(dateString).toISOString();
+  } catch (e) {
+    return null;
+  }
+};
+
 // Get today's date in YYYY-MM-DD format
 const getTodayFormatted = () => {
   const today = new Date();
@@ -66,86 +79,18 @@ const getTodayFormatted = () => {
   return `${year}-${month}-${day}`;
 };
 
-const mockBookData: Book[] = [
-  {
-    bookId: '1',
-    isbn: '9780123456789',
-    userId: '1',
-    title: 'The Great Adventure',
-    author: 'John Smith',
-    publisher: 'Book Press',
-    publicationDate: '2023-01-15',
-    genre: 'Fiction',
-    language: 'English',
-    format: 'Paperback',
-    description: 'An exciting adventure novel about exploration and discovery.',
-    price: 19.99,
-    stock: 25,
-    imageURL: '/books/great-adventure.jpg',
-    discount: 0.1,
-    discountStartDate: '2025-04-01',
-    discountEndDate: '2025-05-31',
-    arrivalDate: '2023-01-10'
-  },
-  {
-    bookId: '2',
-    isbn: '9780987654321',
-    userId: '2',
-    title: 'The Secret Code',
-    author: 'Jane Doe',
-    publisher: 'Mystery Books',
-    publicationDate: '2024-03-20',
-    genre: 'Mystery',
-    language: 'English',
-    format: 'Hardcover',
-    description: 'A thrilling mystery novel with unexpected twists.',
-    price: 24.99,
-    stock: 15,
-    imageURL: '/books/secret-code.jpg',
-    discount: 0,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: '2024-03-15'
-  },
-  {
-    bookId: '3',
-    isbn: '9781122334455',
-    userId: '1',
-    title: 'Learn React',
-    author: 'Dev Expert',
-    publisher: 'Tech Publications',
-    publicationDate: '2024-01-10',
-    genre: 'Technology',
-    language: 'English',
-    format: 'eBook',
-    description: 'Comprehensive guide to modern React development.',
-    price: 29.99,
-    stock: 50,
-    imageURL: '/books/learn-react.jpg',
-    discount: 0.15,
-    discountStartDate: '2025-04-15',
-    discountEndDate: '2025-06-15',
-    arrivalDate: '2024-01-05'
-  }
-];
-
-const mockServices = {
-  getAllBooks: (): Promise<Book[]> => new Promise(resolve => setTimeout(() => resolve(mockBookData), 500)),
-  addBook: (newBook: Omit<Book, 'bookId'>): Promise<Book> => 
-    new Promise(resolve => setTimeout(() => resolve({ ...newBook, bookId: Math.random().toString(36).substring(2, 9) }), 500)),
-  updateBook: (updatedBook: Book): Promise<Book> => new Promise(resolve => setTimeout(() => resolve(updatedBook), 500)),
-  deleteBook: (bookId: string): Promise<void> => new Promise(resolve => setTimeout(() => resolve(), 500)),
-};
-
 export const AdminBookManagement = () => {
+  const { user } = useAuth();
+  
   const [books, setBooks] = useState<Book[]>([]);
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, mode: 'view', selectedBook: null });
   const [enableDiscount, setEnableDiscount] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [bookForm, setBookForm] = useState<Omit<Book, 'bookId'>>({
     isbn: '',
-    userId: '1', // Default user ID
+    userId: user?.id || '1', 
     title: '',
     author: '',
     publisher: '',
@@ -163,14 +108,222 @@ export const AdminBookManagement = () => {
     arrivalDate: getTodayFormatted()
   });
 
+  const getToken = () => {
+    const authUser = localStorage.getItem('authUser');
+    if (authUser) {
+      try {
+        // If your token is stored inside the authUser object
+        // Modify this based on your actual token storage method
+        const userData = JSON.parse(authUser);
+        return userData.token || '';
+      } catch (e) {
+        console.error('Error parsing auth user data:', e);
+        return '';
+      }
+    }
+    return '';
+  };
+
+  // Check if a valid token exists
+  const hasValidToken = () => {
+    const token = getToken();
+    return !!token;
+  };
+
+  // API Services
+  const apiServices = {
+    getAllBooks: async (): Promise<Book[]> => {
+      setIsLoading(true);
+      try {
+        const token = getToken();
+        
+        if (!token) {
+          toast.error('Not authenticated. Please log in.');
+          throw new Error('No authentication token found');
+        }
+        
+        const response = await axios.get('/api/Book/getAllBooks', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error('Error fetching books:', error);
+        // Show more specific error message
+        if (error.response) {
+          if (error.response.status === 401) {
+            toast.error('Session expired. Please log in again.');
+          } else {
+            toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Unknown error'}`);
+          }
+        } else if (error.request) {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to fetch books: ' + error.message);
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    
+    addBook: async (newBook: Omit<Book, 'bookId'>): Promise<Book> => {
+      setIsLoading(true);
+      try {
+        const token = getToken();
+        
+        if (!token) {
+          toast.error('Not authenticated. Please log in.');
+          throw new Error('No authentication token found');
+        }
+        
+        // Format dates for API
+        const bookData = {
+          isbn: newBook.isbn,
+          userId: user?.id || newBook.userId, // Use authenticated user ID
+          title: newBook.title,
+          author: newBook.author,
+          publisher: newBook.publisher,
+          publicationDate: formatDateForAPI(newBook.publicationDate),
+          genre: newBook.genre,
+          language: newBook.language,
+          format: newBook.format,
+          description: newBook.description,
+          price: newBook.price,
+          stock: newBook.stock,
+          discount: newBook.discount,
+          discountStartDate: formatDateForAPI(newBook.discountStartDate),
+          discountEndDate: formatDateForAPI(newBook.discountEndDate),
+          arrivalDate: formatDateForAPI(newBook.arrivalDate)
+        };
+        
+        const response = await axios.post('/api/Book/addBook', bookData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error('Error adding book:', error);
+        // Show more detailed error message
+        if (error.response) {
+          toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to add book'}`);
+        } else if (error.request) {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to add book: ' + error.message);
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    
+    updateBook: async (updatedBook: Book): Promise<Book> => {
+      setIsLoading(true);
+      try {
+        const token = getToken();
+        
+        if (!token) {
+          toast.error('Not authenticated. Please log in.');
+          throw new Error('No authentication token found');
+        }
+        
+        // Format dates for API
+        const bookData = {
+          bookId: updatedBook.bookId,
+          isbn: updatedBook.isbn,
+          userId: user?.id || updatedBook.userId,
+          title: updatedBook.title,
+          author: updatedBook.author,
+          publisher: updatedBook.publisher,
+          publicationDate: formatDateForAPI(updatedBook.publicationDate),
+          genre: updatedBook.genre,
+          language: updatedBook.language,
+          format: updatedBook.format,
+          description: updatedBook.description,
+          price: updatedBook.price,
+          stock: updatedBook.stock,
+          discount: updatedBook.discount,
+          discountStartDate: formatDateForAPI(updatedBook.discountStartDate),
+          discountEndDate: formatDateForAPI(updatedBook.discountEndDate),
+          arrivalDate: formatDateForAPI(updatedBook.arrivalDate)
+        };
+        
+        const response = await axios.put(`/api/Book/updateBookDetails/${updatedBook.bookId}`, bookData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        });
+        return response.data;
+      } catch (error: any) {
+        console.error('Error updating book:', error);
+        if (error.response) {
+          toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to update book'}`);
+        } else if (error.request) {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to update book: ' + error.message);
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    
+    deleteBook: async (bookId: string): Promise<void> => {
+      setIsLoading(true);
+      try {
+        const token = getToken();
+        
+        if (!token) {
+          toast.error('Not authenticated. Please log in.');
+          throw new Error('No authentication token found');
+        }
+        
+        await axios.delete(`/api/Book/deleteBook/${bookId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } catch (error: any) {
+        console.error('Error deleting book:', error);
+        if (error.response) {
+          toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to delete book'}`);
+        } else if (error.request) {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to delete book: ' + error.message);
+        }
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+  };
+
   useEffect(() => {
-    mockServices.getAllBooks()
-      .then(data => {
-        setBooks(data);
-        setFilteredBooks(data);
-      })
-      .catch(() => toast.error('Failed to fetch books'));
+    // Check if user is authenticated before fetching books
+    if (hasValidToken()) {
+      fetchBooks();
+    } else {
+      toast.error('You must be logged in to access book management');
+    }
   }, []);
+
+  const fetchBooks = async () => {
+    try {
+      const data = await apiServices.getAllBooks();
+      setBooks(data);
+      setFilteredBooks(data);
+    } catch (error) {
+      console.error('Failed to fetch books:', error);
+      // Error is already handled in the getAllBooks method
+    }
+  };
 
   useEffect(() => {
     setFilteredBooks(
@@ -185,7 +338,7 @@ export const AdminBookManagement = () => {
       const book = dialogState.selectedBook;
       setBookForm({
         isbn: book.isbn,
-        userId: book.userId,
+        userId: user?.id || book.userId, // Use authenticated user ID if available
         title: book.title,
         author: book.author,
         publisher: book.publisher,
@@ -206,7 +359,7 @@ export const AdminBookManagement = () => {
     } else if (dialogState.mode === 'add') {
       setBookForm({
         isbn: '',
-        userId: '1',
+        userId: user?.id || '1', // Use authenticated user ID if available
         title: '',
         author: '',
         publisher: '',
@@ -225,27 +378,27 @@ export const AdminBookManagement = () => {
       });
       setEnableDiscount(false);
     }
-  }, [dialogState]);
+  }, [dialogState, user]);
 
   const handleAddBook = async (newBook: Omit<Book, 'bookId'>) => {
     try {
-      const book = await mockServices.addBook(newBook);
+      const book = await apiServices.addBook(newBook);
       setBooks(prev => [book, ...prev]);
       toast.success('Book added successfully');
       closeDialog();
     } catch {
-      toast.error('Failed to add book');
+      // Error is already handled in the addBook method
     }
   };
 
   const handleUpdateBook = async (updatedBook: Book) => {
     try {
-      const book = await mockServices.updateBook(updatedBook);
+      const book = await apiServices.updateBook(updatedBook);
       setBooks(prev => prev.map(b => b.bookId === book.bookId ? book : b));
       toast.success('Book updated successfully');
       closeDialog();
     } catch {
-      toast.error('Failed to update book');
+      // Error is already handled in the updateBook method
     }
   };
 
@@ -254,11 +407,11 @@ export const AdminBookManagement = () => {
     if (!confirmDelete) return;
     
     try {
-      await mockServices.deleteBook(bookId);
+      await apiServices.deleteBook(bookId);
       setBooks(prev => prev.filter(b => b.bookId !== bookId));
       toast.success('Book deleted successfully');
     } catch {
-      toast.error('Failed to delete book');
+      // Error is already handled in the deleteBook method
     }
   };
 
@@ -311,6 +464,19 @@ export const AdminBookManagement = () => {
     
     return now >= startDate && now <= endDate;
   };
+
+  // Check if user is authenticated
+  if (!hasValidToken()) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">Authentication Required</h2>
+          <p className="text-gray-500">Please login to access the book management system.</p>
+          <Button className="mt-4" onClick={() => window.location.href = '/login'}>Go to Login</Button>
+        </div>
+      </div>
+    );
+  }
 
   const BookCard = ({ book }: { book: Book }) => {
     const discountActive = isDiscountActive(book);
@@ -648,8 +814,10 @@ export const AdminBookManagement = () => {
         </div>
         
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={closeDialog}>Cancel</Button>
-          <Button type="submit">{mode === 'add' ? 'Add Book' : 'Update Book'}</Button>
+          <Button type="button" variant="outline" onClick={closeDialog} disabled={isLoading}>Cancel</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Processing...' : mode === 'add' ? 'Add Book' : 'Update Book'}
+          </Button>
         </DialogFooter>
       </form>
     );
@@ -661,7 +829,7 @@ export const AdminBookManagement = () => {
       
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Book Management</h2>
-        <Button onClick={() => setDialogState({ isOpen: true, mode: 'add', selectedBook: null })}>
+        <Button onClick={() => setDialogState({ isOpen: true, mode: 'add', selectedBook: null })} disabled={isLoading}>
           Add New Book
         </Button>
       </div>
@@ -676,19 +844,25 @@ export const AdminBookManagement = () => {
         />
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredBooks.map(book => (
-          <BookCard key={book.bookId} book={book} />
-        ))}
-        
-        {filteredBooks.length === 0 && (
-          <div className="col-span-full text-center py-12">
-            <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No books found</h3>
-            <p className="mt-1 text-gray-500">Try adjusting your search or add a new book.</p>
-          </div>
-        )}
-      </div>
+      {isLoading && books.length === 0 ? (
+        <div className="flex justify-center items-center h-64">
+          <p className="text-lg text-gray-500">Loading books...</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredBooks.map(book => (
+            <BookCard key={book.bookId} book={book} />
+          ))}
+          
+          {filteredBooks.length === 0 && !isLoading && (
+            <div className="col-span-full text-center py-12">
+              <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-lg font-medium text-gray-900">No books found</h3>
+              <p className="mt-1 text-gray-500">Try adjusting your search or add a new book.</p>
+            </div>
+          )}
+        </div>
+      )}
       
       <Dialog open={dialogState.isOpen} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="max-w-3xl">
