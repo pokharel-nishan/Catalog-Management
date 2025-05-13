@@ -4,8 +4,8 @@ import { ShoppingCart, Menu, X } from 'lucide-react';
 import NavLinks from './NavbarLinks';
 import CartDrawer from '../pageComponents/cart/CartDrawer';
 import { useCart } from '../pageComponents/cart/CartContext';
-import DropdownUser from './DropdownUser';
 import { useAuth } from '../../context/AuthContext';
+import { DropdownUser } from './DropdownUser';
 
 const UserHeader: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -47,6 +47,18 @@ const UserHeader: React.FC = () => {
 
           {/* Right Actions */}
           <div className="flex items-center space-x-4">
+          <button onClick={() => setIsCartOpen(true)} className="relative">
+              <ShoppingCart
+                className="text-gray-700 hover:text-blue-600 transition-colors"
+                size={24}
+              />
+              {items.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {items.length}
+                </span>
+              )}
+            </button>
+
             {/* Conditionally render auth actions */}
             {isLoggedIn ? (
               <DropdownUser />
@@ -67,19 +79,7 @@ const UserHeader: React.FC = () => {
               </>
             )}
 
-            {/* Cart Icon */}
-            <button onClick={() => setIsCartOpen(true)} className="relative">
-              <ShoppingCart
-                className="text-gray-700 hover:text-blue-600 transition-colors"
-                size={24}
-              />
-              {items.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {items.length}
-                </span>
-              )}
-            </button>
-
+        
             {/* Mobile Menu Toggle */}
             <button
               className="md:hidden text-gray-700"
