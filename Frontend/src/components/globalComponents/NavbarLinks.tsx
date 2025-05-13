@@ -10,7 +10,7 @@ const NavLinks: React.FC<NavLinksProps> = ({ mobile, setIsMobileMenuOpen }) => {
   const links = [
     { name: 'Home', path: '/' },
     { name: 'Books', path: '/books' },
-    { name: 'Sales/Announcements', path: '/announcements' },
+    { name: 'Announcements', path: '/announcements' },
     { name: 'Contact', path: '/contact' },
   ];
 

@@ -1,12 +1,17 @@
 import { useEffect } from "react";
-import { startConnection, stopConnection } from '../announcementHub.ts';
+import { startConnection, stopConnection, refreshAnnouncements } from '../announcementHub.ts';
 
 const AnnouncementManager = () => {
   useEffect(() => {
     startConnection();
 
+    const interval = setInterval(() => {
+      refreshAnnouncements();
+    }, 30000);
+
     return () => {
       stopConnection();
+      clearInterval(interval);
     };
   }, []);
 
@@ -14,4 +19,3 @@ const AnnouncementManager = () => {
 };
 
 export default AnnouncementManager;
-

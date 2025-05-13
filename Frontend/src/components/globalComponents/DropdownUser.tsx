@@ -2,17 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { User, LogOut, Package, Heart } from 'lucide-react';
 import LogoutModal from '../modals/LogoutModal';
+import { useAuth } from '../../context/AuthContext';
 
-const DropdownUser: React.FC = () => {
+export const DropdownUser: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const user = {
-    fullName: 'Jane Doe',
-    email: 'jane@example.com',
-    city: 'San Francisco',
-  };
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -30,13 +26,14 @@ const DropdownUser: React.FC = () => {
     { href: "/my-orders", label: "My Orders", icon: <Package size={18} /> },
     { href: "/wishlists", label: "My Wishlist", icon: <Heart size={18} /> },
     {
-      href: "/logout",
+      href: "#",
       label: "Logout",
       icon: <LogOut size={18} className="text-red-500" />,
       isLogout: true,
-      isDanger: true,
     },
   ];
+
+  if (!user) return null;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -48,14 +45,13 @@ const DropdownUser: React.FC = () => {
         <User className="w-6 h-6 text-gray-700" />
       </button>
 
-      {/* Dropdown */}
       <div
         className={`absolute right-0 mt-2 w-60 rounded-md bg-white shadow-md ring-1 ring-black ring-opacity-5 transition duration-200 ease-in-out z-50 ${
           dropdownOpen ? 'visible opacity-100 scale-100' : 'invisible opacity-0 scale-95'
         }`}
       >
         <div className="p-4 border-b">
-          <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+          <p className="text-sm font-medium text-gray-900">{user.name}</p>
           <p className="text-sm text-gray-500 truncate">{user.email}</p>
         </div>
 
@@ -92,5 +88,3 @@ const DropdownUser: React.FC = () => {
     </div>
   );
 };
-
-export default DropdownUser;
