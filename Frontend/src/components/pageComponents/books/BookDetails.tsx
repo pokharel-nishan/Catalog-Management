@@ -49,8 +49,12 @@ const BookDetailPage = () => {
           isNewRelease: response.data.isNewRelease || false,
           isComingSoon: response.data.isComingSoon || false,
           category: response.data.category || [],
-          publishedDate: response.data.publishedDate || response.data.publicationDate || "",
-          coverImage: response.data.coverImage || response.data.imageURL || "/default-image.png",
+          publishedDate:
+            response.data.publishedDate || response.data.publicationDate || "",
+          coverImage:
+            response.data.coverImage ||
+            response.data.imageURL ||
+            "/default-image.png",
         };
         setBook(fetchedBook);
       } catch (error) {
@@ -96,7 +100,8 @@ const BookDetailPage = () => {
     toast.success("Comments loaded!");
   };
 
-  if (!book) return <div className="container mx-auto px-4 py-8">Loading...</div>;
+  if (!book)
+    return <div className="container mx-auto px-4 py-8">Loading...</div>;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -104,7 +109,7 @@ const BookDetailPage = () => {
         <div className="md:w-1/3">
           <div className="aspect-[2/3] overflow-hidden rounded-lg shadow-lg bg-white">
             <img
-              src={book.coverImage || book.imageURL || ""}
+              src={`http://localhost:5213${book.imageURL}`}
               alt={book.title || ""}
               className="w-full h-full object-cover"
             />
@@ -137,7 +142,7 @@ const BookDetailPage = () => {
                   : "border border-orange-400 text-orange-400 hover:bg-orange-50"
               }`}
             >
-              {(!book.stock || book.stock <= 0) ? "Out of Stock" : "Add To Cart"}
+              {!book.stock || book.stock <= 0 ? "Out of Stock" : "Add To Cart"}
             </button>
           </div>
         </div>
@@ -177,7 +182,10 @@ const BookDetailPage = () => {
               <h2 className="text-2xl font-bold mb-4">Category</h2>
               <div className="flex flex-wrap gap-2">
                 {(book.category || []).map((cat) => (
-                  <span key={cat} className="px-4 py-2 bg-gray-100 rounded-full text-gray-700">
+                  <span
+                    key={cat}
+                    className="px-4 py-2 bg-gray-100 rounded-full text-gray-700"
+                  >
                     {cat}
                   </span>
                 ))}
@@ -185,7 +193,9 @@ const BookDetailPage = () => {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4">Additional Information</h2>
+              <h2 className="text-2xl font-bold mb-4">
+                Additional Information
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
                 <div>
                   <h3 className="font-semibold text-gray-600">Author</h3>
@@ -193,7 +203,11 @@ const BookDetailPage = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-600">Published In</h3>
-                  <p>{new Date(book.publishedDate || book.publicationDate).toLocaleDateString()}</p>
+                  <p>
+                    {new Date(
+                      book.publishedDate || book.publicationDate
+                    ).toLocaleDateString()}
+                  </p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-600">Genre</h3>

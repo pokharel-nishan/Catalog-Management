@@ -92,7 +92,6 @@ export const order: OrderType = {
   total: 105.26,
 };
 
-
 const OrderStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const getStatusColor = (status: string): string => {
     switch (status.toLowerCase()) {
@@ -127,7 +126,7 @@ const BookItem: React.FC<{ book: BookType }> = ({ book }) => (
     <div className="w-16 h-24 bg-gray-100 flex-shrink-0 rounded overflow-hidden">
       {book.coverImage ? (
         <img
-          src={book.coverImage}
+          src={`http://localhost:5213${book.coverImage}`}
           alt={book.title}
           className="w-full h-full object-cover"
         />
