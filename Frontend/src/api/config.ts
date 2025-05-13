@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios'; // ✅ Type-only import
+import { useAuth } from "../context/AuthContext";
 
 const DEV_API_URL = 'http://localhost:5213/api';
 
