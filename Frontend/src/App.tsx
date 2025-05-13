@@ -18,10 +18,12 @@ import AnnouncementPage from "./pages/announcements";
 import UserOrderHistory from "./pages/user-profile/order";
 import Wishlist from "./pages/user-profile/wishlist";
 import AdminDashboard from "./pages/admin/dashboard";
+import AnnouncementManager from "./components/AnnouncementManager";
 
 function App() {
   return (
     <CartProvider>
+      <AnnouncementManager />
       <Router>
           <Routes>
             <Route path="/register" element={<Register />} />

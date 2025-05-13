@@ -1,6 +1,5 @@
-// AnnouncementManager.jsx
 import { useEffect } from "react";
-import { startConnection, stopConnection } from "../announcementHub.js";
+import { startConnection, stopConnection } from '../announcementHub.ts';
 
 const AnnouncementManager = () => {
   useEffect(() => {
