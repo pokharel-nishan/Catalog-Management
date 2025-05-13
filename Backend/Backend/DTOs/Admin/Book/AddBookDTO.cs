@@ -12,6 +12,7 @@
         public string Format { get; set; }
         public string Description { get; set; }
         public decimal Price { get; set; }
+        public string ImageURL { get; set; }
         public int Stock { get; set; }
         public decimal Discount { get; set; }
         public DateTime? DiscountStartDate { get; set; }
