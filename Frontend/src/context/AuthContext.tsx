@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect} from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 type UserRole = 'admin' | 'staff' | 'user';
@@ -39,10 +39,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    // Optionally load user from localStorage or an API
     const storedUser = localStorage.getItem('authUser');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const userData: AuthUser = JSON.parse(storedUser);
+      setUser(userData);
     }
   }, []);
 
