@@ -101,7 +101,9 @@ public class UserService : IUserService
         {
             Id = user.Id,
             Email = user.Email,
-            Roles = roles
+            Roles = roles,
+            FirstName = user.FirstName,
+            LastName = user.LastName
         };
     }
     
