@@ -11,9 +11,12 @@
         public string Language { get; set; }
         public string Format { get; set; }
         public string Description { get; set; }
-        public float Price { get; set; }
+        public decimal Price { get; set; }
         public int Stock { get; set; }
-        public float Discount { get; set; }
+        public decimal Discount { get; set; }
+        public DateTime? DiscountStartDate { get; set; }
+        public DateTime? DiscountEndDate { get; set; }
+        public DateTime? ArrivalDate { get; set; }
 
     }
 }
