@@ -1,10 +1,10 @@
-import { CustomerOrderManagement } from "../../../components/pageComponents/admin/manage-orders/OrderManagementPage";
+import AdminOrderManagement from "../../../components/pageComponents/admin/manage-orders/AdminOrderManagementPage";
 import AdminLayout from "../../../layouts/AdminLayout";
 
 const OrdersManagement = () => {
   return (
     <AdminLayout>
-      <CustomerOrderManagement />
+      <AdminOrderManagement />
     </AdminLayout>
   );
 };

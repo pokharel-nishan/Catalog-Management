@@ -9,11 +9,13 @@ interface AuthUser {
   email: string;
   role: UserRole;
   avatarUrl?: string;
+  token: string;
+  address?: string; 
 }
 
 interface AuthContextType {
   user: AuthUser | null;
-  login: (userData: AuthUser) => void;
+  login: (userData: Partial<AuthUser>) => void;
   logout: () => void;
   isAdmin: boolean;
   isStaff: boolean;
@@ -41,14 +43,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const storedUser = localStorage.getItem('authUser');
     if (storedUser) {
-      const userData: AuthUser = JSON.parse(storedUser);
-      setUser(userData);
+      try {
+        const userData: AuthUser = JSON.parse(storedUser);
+        setUser(userData);
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('authUser');
+      }
     }
   }, []);
 
-  const login = (userData: AuthUser) => {
-    setUser(userData);
-    localStorage.setItem('authUser', JSON.stringify(userData));
+  const login = (userData: Partial<AuthUser>) => {
+    if (!userData.token) {
+      console.error("No token provided in user data");
+      throw new Error("Authentication token is required");
+    }
+  
+    // Ensure all required fields are present, or throw an error
+    const completeUserData: AuthUser = {
+      id: userData.id ?? "",
+      name: userData.name ?? "",
+      email: userData.email ?? "",
+      role: userData.role ?? "user",
+      token: userData.token, 
+      avatarUrl: userData.avatarUrl,
+      address: userData.address,
+    };
+  
+    setUser(completeUserData);
+    localStorage.setItem('authUser', JSON.stringify(completeUserData));
   };
 
   const logout = () => {

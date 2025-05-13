@@ -36,14 +36,14 @@ export default function LoginComponent() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+  
     if (formData.loginAs !== "User") {
       toast.error("Only 'User' role is allowed to log in.");
       return;
     }
-
+  
     setIsSubmitting(true);
-
+  
     try {
       // API request with the expected structure
       const response = await apiClient.post("/User/login", {
@@ -51,29 +51,29 @@ export default function LoginComponent() {
         password: formData.password,
         rememberMe: formData.rememberMe
       });
-
+  
       console.log("API Response:", response.data);
-
+  
       const userData = {
         id: response.data.id || response.data.userId || "default-id",
-        name: response.data.name || response.data.firstName + " " + response.data.lastName || response.data.email.split('@')[0],
+        name: response.data.name || (response.data.firstName + " " + response.data.lastName) || response.data.email.split('@')[0],
         email: response.data.email || formData.email,
         role: response.data.role || "user" as UserRole,
+        token: response.data.token,
         avatarUrl: response.data.avatarUrl,
         address: response.data.address
       };
-
+  
       login(userData);
-
+  
       toast.success("Login successful! Redirecting...");
-
+  
       setTimeout(() => {
         navigate("/");
       }, 2000);
     } catch (error: any) {
       console.error("Login failed:", error);
       
-      // More detailed error logging
       if (error.response) {
         console.error("Response data:", error.response.data);
         console.error("Response status:", error.response.status);

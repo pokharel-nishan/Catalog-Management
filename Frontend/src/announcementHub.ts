@@ -1,10 +1,10 @@
 import * as signalR from "@microsoft/signalr";
 import { toast } from "react-toastify";
 
-// Define the shape of the announcement object
 interface Announcement {
-  id: string | number; // Assuming ID is either a string or number
+  id: string | number;
   message: string;
+  date: string;
 }
 
 let connection: signalR.HubConnection | null = null;
@@ -17,8 +17,18 @@ export const startConnection = (): void => {
     .build();
 
   connection.on("ReceiveAnnouncement", (announcement: Announcement) => {
-    console.log("New announcement:", announcement);
-    showAnnouncementToast(announcement);
+    console.log("New announcement received:", announcement);
+
+    const now = new Date();
+    const postedAt = new Date(announcement.date);
+
+    console.log(`Current time (frontend): ${now.toISOString()}`, `Announcement postedAt: ${postedAt.toISOString()}`);
+
+    if (postedAt <= now) {
+      showAnnouncementToast(announcement);
+    } else {
+      console.log(`Announcement ${announcement.id} is scheduled for the future: ${postedAt}`);
+    }
   });
 
   connection
@@ -33,6 +43,12 @@ export const stopConnection = (): void => {
   }
 };
 
+export const refreshAnnouncements = async () => {
+  if (connection) {
+    connection.invoke("RefreshAnnouncements").catch((err) => console.error("Error refreshing announcements:", err));
+  }
+};
+
 const showAnnouncementToast = (announcement: Announcement): void => {
   toast(announcement.message, {
     position: "top-center",
@@ -42,6 +58,6 @@ const showAnnouncementToast = (announcement: Announcement): void => {
     pauseOnHover: true,
     draggable: true,
     progress: undefined,
-    toastId: announcement.id.toString(), // Convert ID to string to avoid type issues
+    toastId: announcement.id.toString(),
   });
 };

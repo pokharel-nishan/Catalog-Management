@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import type { FormEvent, ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ React Router for redirection
-import apiClient from "../../../api/config.ts";
-import { toast } from "react-toastify";
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import type { FormEvent, ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../../../api/config';
+import { toast } from 'react-toastify';
 
 interface FormData {
   firstName: string;
@@ -20,7 +20,7 @@ export default function UserRegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const navigate = useNavigate(); // ✅ Initialize useNavigate
+  const navigate = useNavigate();
 
   const isPasswordValid = (password: string) => {
     return (
@@ -33,12 +33,12 @@ export default function UserRegisterPage() {
   };
 
   const [formData, setFormData] = useState<FormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    address: "",
-    password: "",
-    confirmPassword: "",
+    firstName: '',
+    lastName: '',
+    email: '',
+    address: '',
+    password: '',
+    confirmPassword: '',
     termsAccepted: false,
   });
 
@@ -46,7 +46,7 @@ export default function UserRegisterPage() {
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    const isCheckbox = type === "checkbox";
+    const isCheckbox = type === 'checkbox';
 
     setFormData((prev) => ({
       ...prev,
@@ -57,7 +57,6 @@ export default function UserRegisterPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Basic client-side validation
     if (
       !formData.firstName ||
       !formData.lastName ||
@@ -66,7 +65,7 @@ export default function UserRegisterPage() {
       !formData.password ||
       !formData.confirmPassword
     ) {
-      toast.error("Please fill out all required fields.");
+      toast.error('Please fill out all required fields.');
       return;
     }
 
@@ -84,38 +83,36 @@ export default function UserRegisterPage() {
         email: formData.email,
         address: formData.address,
         password: formData.password,
+        role: 'Regular',
       };
 
-      const response = await apiClient.post("/User/register", payload);
+      const response = await apiClient.post('/User/register', payload);
 
-      toast.success("Registration successful! Redirecting to login page...");
+      toast.success('Registration successful! Redirecting to login page...');
 
-      // Reset form
       setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        address: "",
-        password: "",
-        confirmPassword: "",
+        firstName: '',
+        lastName: '',
+        email: '',
+        address: '',
+        password: '',
+        confirmPassword: '',
         termsAccepted: false,
       });
 
-      // ✅ Redirect after 2 seconds
       setTimeout(() => {
-        navigate("/login");
+        navigate('/login');
       }, 2000);
     } catch (error: any) {
-
       if (error.response) {
-        console.error("Registration failed:", error.response.data);
+        console.error('Registration failed:', error.response.data);
         toast.error(
           error.response.data.message ||
-            "Registration failed. Please try again."
+            'Registration failed. Please try again.'
         );
       } else {
-        console.error("Unexpected error:", error.message);
-        toast.error("Something went wrong. Please try again.");
+        console.error('Unexpected error:', error.message);
+        toast.error('Something went wrong. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -197,7 +194,7 @@ export default function UserRegisterPage() {
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -218,8 +215,8 @@ export default function UserRegisterPage() {
                 <p
                   className={`text-xs mt-1 ${
                     isPasswordValid(formData.password)
-                      ? "text-green-600"
-                      : "text-red-600"
+                      ? 'text-green-600'
+                      : 'text-red-600'
                   }`}
                 >
                   Password must be at least 8 characters and include uppercase,
@@ -234,7 +231,7 @@ export default function UserRegisterPage() {
               </label>
               <div className="relative">
                 <input
-                  type={showConfirmPassword ? "text" : "password"}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
@@ -265,11 +262,11 @@ export default function UserRegisterPage() {
                 className="h-4 w-4 mt-1 text-blue-600 rounded"
               />
               <label htmlFor="terms" className="ml-2 text-gray-700 text-sm">
-                I agree to the{" "}
+                I agree to the{' '}
                 <a href="#terms" className="text-blue-600 hover:underline">
                   Terms and Conditions
-                </a>{" "}
-                and{" "}
+                </a>{' '}
+                and{' '}
                 <a href="#privacy" className="text-blue-600 hover:underline">
                   Privacy Policy
                 </a>
@@ -287,16 +284,16 @@ export default function UserRegisterPage() {
                 formData.termsAccepted &&
                 !isSubmitting &&
                 isPasswordValid(formData.password)
-                  ? "bg-[#2BA1AA] hover:bg-teal-600"
-                  : "bg-gray-300 cursor-not-allowed"
+                  ? 'bg-[#2BA1AA] hover:bg-teal-600'
+                  : 'bg-gray-300 cursor-not-allowed'
               } text-white rounded-md transition duration-300`}
             >
-              {isSubmitting ? "Submitting..." : "Sign Up"}
+              {isSubmitting ? 'Submitting...' : 'Sign Up'}
             </button>
           </form>
 
           <div className="mt-6 text-center text-gray-700 text-sm">
-            Already have an account?{" "}
+            Already have an account?{' '}
             <a href="/login" className="text-blue-600 hover:underline">
               Login
             </a>

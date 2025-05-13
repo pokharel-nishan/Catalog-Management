@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Trash2, Edit, Eye, BookOpen } from 'lucide-react';
+import { Trash2, Edit, Eye } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -16,11 +15,11 @@ import { Card, CardContent } from '../../../ui/card';
 import { Label } from '../../../ui/label';
 import { Checkbox } from '../../../ui/checkbox';
 import { useAuth } from '../../../../context/AuthContext';
+import apiClient from '../../../../api/config';
 
 interface Book {
   bookId: string;
   isbn: string;
-  userId: string;
   title: string;
   author: string;
   publisher: string;
@@ -61,12 +60,13 @@ const formatDateForInput = (dateString: string | null) => {
 
 // Format date for API requests (ISO format)
 const formatDateForAPI = (dateString: string | null) => {
-  if (!dateString) return null;
-  
+  if (!dateString) return new Date().toISOString();
   try {
-    return new Date(dateString).toISOString();
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return new Date().toISOString();
+    return date.toISOString();
   } catch (e) {
-    return null;
+    return new Date().toISOString();
   }
 };
 
@@ -83,14 +83,12 @@ export const AdminBookManagement = () => {
   const { user } = useAuth();
   
   const [books, setBooks] = useState<Book[]>([]);
-  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, mode: 'view', selectedBook: null });
   const [enableDiscount, setEnableDiscount] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [bookForm, setBookForm] = useState<Omit<Book, 'bookId'>>({
     isbn: '',
-    userId: user?.id || '1', 
     title: '',
     author: '',
     publisher: '',
@@ -108,52 +106,20 @@ export const AdminBookManagement = () => {
     arrivalDate: getTodayFormatted()
   });
 
-  const getToken = () => {
-    const authUser = localStorage.getItem('authUser');
-    if (authUser) {
-      try {
-        // If your token is stored inside the authUser object
-        // Modify this based on your actual token storage method
-        const userData = JSON.parse(authUser);
-        return userData.token || '';
-      } catch (e) {
-        console.error('Error parsing auth user data:', e);
-        return '';
-      }
-    }
-    return '';
-  };
-
-  // Check if a valid token exists
-  const hasValidToken = () => {
-    const token = getToken();
-    return !!token;
-  };
-
   // API Services
   const apiServices = {
     getAllBooks: async (): Promise<Book[]> => {
       setIsLoading(true);
       try {
-        const token = getToken();
-        
-        if (!token) {
-          toast.error('Not authenticated. Please log in.');
-          throw new Error('No authentication token found');
-        }
-        
-        const response = await axios.get('/api/Book/getAllBooks', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await apiClient.get('/Book/getAllBooks');
         return response.data;
       } catch (error: any) {
-        console.error('Error fetching books:', error);
-        // Show more specific error message
+        console.error('Error fetching books:', error.response?.data);
         if (error.response) {
           if (error.response.status === 401) {
-            toast.error('Session expired. Please log in again.');
+            toast.error('Unauthorized: Admin access required.');
+          } else if (error.response.status === 403) {
+            toast.error('Forbidden: Insufficient permissions.');
           } else {
             toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Unknown error'}`);
           }
@@ -171,17 +137,8 @@ export const AdminBookManagement = () => {
     addBook: async (newBook: Omit<Book, 'bookId'>): Promise<Book> => {
       setIsLoading(true);
       try {
-        const token = getToken();
-        
-        if (!token) {
-          toast.error('Not authenticated. Please log in.');
-          throw new Error('No authentication token found');
-        }
-        
-        // Format dates for API
         const bookData = {
           isbn: newBook.isbn,
-          userId: user?.id || newBook.userId, // Use authenticated user ID
           title: newBook.title,
           author: newBook.author,
           publisher: newBook.publisher,
@@ -192,22 +149,17 @@ export const AdminBookManagement = () => {
           description: newBook.description,
           price: newBook.price,
           stock: newBook.stock,
-          discount: newBook.discount,
-          discountStartDate: formatDateForAPI(newBook.discountStartDate),
-          discountEndDate: formatDateForAPI(newBook.discountEndDate),
+          imageURL: newBook.imageURL || '',
+          discount: enableDiscount ? newBook.discount : 0,
+          discountStartDate: formatDateForAPI(newBook.discountStartDate || getTodayFormatted()),
+          discountEndDate: formatDateForAPI(newBook.discountEndDate || getTodayFormatted()),
           arrivalDate: formatDateForAPI(newBook.arrivalDate)
         };
-        
-        const response = await axios.post('/api/Book/addBook', bookData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-        });
+        console.log('Adding book with data:', bookData);
+        const response = await apiClient.post('/Book/addBook', bookData);
         return response.data;
       } catch (error: any) {
-        console.error('Error adding book:', error);
-        // Show more detailed error message
+        console.error('Error adding book:', error.response?.data);
         if (error.response) {
           toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to add book'}`);
         } else if (error.request) {
@@ -224,18 +176,9 @@ export const AdminBookManagement = () => {
     updateBook: async (updatedBook: Book): Promise<Book> => {
       setIsLoading(true);
       try {
-        const token = getToken();
-        
-        if (!token) {
-          toast.error('Not authenticated. Please log in.');
-          throw new Error('No authentication token found');
-        }
-        
-        // Format dates for API
         const bookData = {
           bookId: updatedBook.bookId,
           isbn: updatedBook.isbn,
-          userId: user?.id || updatedBook.userId,
           title: updatedBook.title,
           author: updatedBook.author,
           publisher: updatedBook.publisher,
@@ -246,21 +189,17 @@ export const AdminBookManagement = () => {
           description: updatedBook.description,
           price: updatedBook.price,
           stock: updatedBook.stock,
-          discount: updatedBook.discount,
-          discountStartDate: formatDateForAPI(updatedBook.discountStartDate),
-          discountEndDate: formatDateForAPI(updatedBook.discountEndDate),
+          imageURL: updatedBook.imageURL || '',
+          discount: enableDiscount ? updatedBook.discount : 0,
+          discountStartDate: formatDateForAPI(updatedBook.discountStartDate || getTodayFormatted()),
+          discountEndDate: formatDateForAPI(updatedBook.discountEndDate || getTodayFormatted()),
           arrivalDate: formatDateForAPI(updatedBook.arrivalDate)
         };
-        
-        const response = await axios.put(`/api/Book/updateBookDetails/${updatedBook.bookId}`, bookData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-        });
+        console.log('Updating book with data:', bookData);
+        const response = await apiClient.put(`/Book/updateBookDetails/${updatedBook.bookId}`, bookData);
         return response.data;
       } catch (error: any) {
-        console.error('Error updating book:', error);
+        console.error('Error updating book:', error.response?.data);
         if (error.response) {
           toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to update book'}`);
         } else if (error.request) {
@@ -277,20 +216,10 @@ export const AdminBookManagement = () => {
     deleteBook: async (bookId: string): Promise<void> => {
       setIsLoading(true);
       try {
-        const token = getToken();
-        
-        if (!token) {
-          toast.error('Not authenticated. Please log in.');
-          throw new Error('No authentication token found');
-        }
-        
-        await axios.delete(`/api/Book/deleteBook/${bookId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        await apiClient.delete(`/Book/deleteBook/${bookId}`);
+        toast.success('Book deleted successfully');
       } catch (error: any) {
-        console.error('Error deleting book:', error);
+        console.error('Error deleting book:', error.response?.data);
         if (error.response) {
           toast.error(`Error: ${error.response.status} - ${error.response.data.message || 'Failed to delete book'}`);
         } else if (error.request) {
@@ -306,45 +235,34 @@ export const AdminBookManagement = () => {
   };
 
   useEffect(() => {
-    // Check if user is authenticated before fetching books
-    if (hasValidToken()) {
-      fetchBooks();
-    } else {
+    if (!user) {
       toast.error('You must be logged in to access book management');
+    } else {
+      console.log('Authenticated user:', user);
+      fetchBooks();
     }
-  }, []);
+  }, [user]);
 
   const fetchBooks = async () => {
     try {
       const data = await apiServices.getAllBooks();
       setBooks(data);
-      setFilteredBooks(data);
     } catch (error) {
-      console.error('Failed to fetch books:', error);
-      // Error is already handled in the getAllBooks method
+      // Error handled in getAllBooks
     }
   };
-
-  useEffect(() => {
-    setFilteredBooks(
-      books.filter(b => 
-        `${b.title} ${b.author} ${b.isbn} ${b.publisher} ${b.genre}`.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [searchTerm, books]);
 
   useEffect(() => {
     if (dialogState.selectedBook && dialogState.mode === 'edit') {
       const book = dialogState.selectedBook;
       setBookForm({
         isbn: book.isbn,
-        userId: user?.id || book.userId, // Use authenticated user ID if available
         title: book.title,
         author: book.author,
         publisher: book.publisher,
         publicationDate: book.publicationDate,
         genre: book.genre,
-        language: book.language, 
+        language: book.language,
         format: book.format,
         description: book.description,
         price: book.price,
@@ -359,7 +277,6 @@ export const AdminBookManagement = () => {
     } else if (dialogState.mode === 'add') {
       setBookForm({
         isbn: '',
-        userId: user?.id || '1', // Use authenticated user ID if available
         title: '',
         author: '',
         publisher: '',
@@ -378,7 +295,7 @@ export const AdminBookManagement = () => {
       });
       setEnableDiscount(false);
     }
-  }, [dialogState, user]);
+  }, [dialogState]);
 
   const handleAddBook = async (newBook: Omit<Book, 'bookId'>) => {
     try {
@@ -387,7 +304,7 @@ export const AdminBookManagement = () => {
       toast.success('Book added successfully');
       closeDialog();
     } catch {
-      // Error is already handled in the addBook method
+      // Error handled in addBook
     }
   };
 
@@ -398,7 +315,7 @@ export const AdminBookManagement = () => {
       toast.success('Book updated successfully');
       closeDialog();
     } catch {
-      // Error is already handled in the updateBook method
+      // Error handled in updateBook
     }
   };
 
@@ -409,9 +326,8 @@ export const AdminBookManagement = () => {
     try {
       await apiServices.deleteBook(bookId);
       setBooks(prev => prev.filter(b => b.bookId !== bookId));
-      toast.success('Book deleted successfully');
     } catch {
-      // Error is already handled in the deleteBook method
+      // Error handled in deleteBook
     }
   };
 
@@ -428,14 +344,33 @@ export const AdminBookManagement = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Handle disabled discount fields
+    // Validation
+    const requiredFields = ['isbn', 'title', 'author', 'publisher', 'genre', 'language', 'format', 'description'];
+    for (const field of requiredFields) {
+      if (!bookForm[field as keyof typeof bookForm]) {
+        toast.error(`Please fill in the ${field} field`);
+        return;
+      }
+    }
+    if (bookForm.price < 0 || bookForm.stock < 0) {
+      toast.error('Price and stock must be non-negative');
+      return;
+    }
+    if (enableDiscount && (bookForm.discount <= 0 || !bookForm.discountStartDate || !bookForm.discountEndDate)) {
+      toast.error('Please provide valid discount details');
+      return;
+    }
+
     const submissionData = {
       ...bookForm,
+      imageURL: bookForm.imageURL || '',
       discount: enableDiscount ? bookForm.discount : 0,
-      discountStartDate: enableDiscount ? bookForm.discountStartDate : null,
-      discountEndDate: enableDiscount ? bookForm.discountEndDate : null
+      discountStartDate: enableDiscount ? bookForm.discountStartDate : getTodayFormatted(),
+      discountEndDate: enableDiscount ? bookForm.discountEndDate : getTodayFormatted()
     };
-    
+
+    console.log('Submitting book data:', submissionData);
+
     if (dialogState.mode === 'add') {
       handleAddBook(submissionData);
     } else if (dialogState.mode === 'edit' && dialogState.selectedBook) {
@@ -466,7 +401,7 @@ export const AdminBookManagement = () => {
   };
 
   // Check if user is authenticated
-  if (!hasValidToken()) {
+  if (!user) {
     return (
       <div className="container py-8">
         <div className="flex flex-col items-center justify-center h-64">
@@ -745,13 +680,14 @@ export const AdminBookManagement = () => {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">Description *</Label>
           <textarea
             id="description"
             name="description"
             className="w-full px-3 py-2 border rounded-md h-24"
             value={bookForm.description}
             onChange={handleFormChange}
+            required
           ></textarea>
         </div>
         
@@ -844,24 +780,20 @@ export const AdminBookManagement = () => {
         />
       </div>
       
-      {isLoading && books.length === 0 ? (
-        <div className="flex justify-center items-center h-64">
-          <p className="text-lg text-gray-500">Loading books...</p>
+      {books.length > 0 ? (
+        <div className="space-y-4">
+          {books
+            .filter(book =>
+              book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              book.isbn.includes(searchTerm)
+            )
+            .map(book => (
+              <BookCard key={book.bookId} book={book} />
+            ))}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredBooks.map(book => (
-            <BookCard key={book.bookId} book={book} />
-          ))}
-          
-          {filteredBooks.length === 0 && !isLoading && (
-            <div className="col-span-full text-center py-12">
-              <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No books found</h3>
-              <p className="mt-1 text-gray-500">Try adjusting your search or add a new book.</p>
-            </div>
-          )}
-        </div>
+        <p className="text-gray-500">No books found.</p>
       )}
       
       <Dialog open={dialogState.isOpen} onOpenChange={(open) => !open && closeDialog()}>
