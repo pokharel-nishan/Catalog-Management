@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { sampleOrders } from "../../../../data/order";
-import AccLayout from "../UserSidebar";
 import type { OrderType } from "../../../../types/order";
 
 const TABS = ["All", "Processed Order", "Delivered", "Cancelled"] as const;
@@ -16,19 +15,19 @@ const STATE_MAP: Record<TabType, string | null> = {
 
 const noOrdersData = {
   All: {
-    image: "/images/noordersplaced.png",
+    image: "/noorders.png",
     message: "You have not placed any orders yet.",
   },
   "Processed Order": {
-    image: "/images/noordersplaced.png",
+    image: "/noorders.png",
     message: "There are currently no orders on the way.",
   },
   Delivered: {
-    image: "/images/noordersplaced.png",
+    image: "/noorder.png",
     message: "No orders have been delivered yet.",
   },
   Cancelled: {
-    image: "/images/noordersplaced.png",
+    image: "/noorders.png",
     message: "There are no cancelled orders.",
   },
 };
@@ -56,7 +55,7 @@ const MyOrders = () => {
           <img
             src={noOrdersData[activeTab].image}
             alt={`No orders in ${activeTab} tab`}
-            className="w-32 h-32 lg:w-56 lg:h-56 object-contain"
+            className="w-52 h-52 lg:w-96 lg:h-96 object-contain"
           />
           <h2 className="text-gray-500 mt-2 text-sm lg:text-base">
             {noOrdersData[activeTab].message}
@@ -161,7 +160,6 @@ const MyOrders = () => {
 
   return (
     <main className="bg-gray-50 min-h-screen">
-      <AccLayout>
         <section>
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center">
             <div className="flex flex-wrap space-x-2 lg:space-x-4 mb-4 lg:mb-0">
@@ -191,7 +189,7 @@ const MyOrders = () => {
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm lg:text-base focus:outline-none focus:ring-primary focus:border-primary w-full lg:w-auto"
               />
               <button
-                className="py-2 px-4 bg-secondary text-white font-medium rounded-md text-sm lg:text-base"
+                className="py-2 px-4 bg-primary text-white font-medium rounded-md text-sm lg:text-base"
                 onClick={handleSearch}
               >
                 Track
@@ -202,9 +200,9 @@ const MyOrders = () => {
           {searchResult === "not_found" ? (
             <div className="flex flex-col items-center mt-20">
               <img
-                src="/images/noresults.png"
+                src="/noresults.png"
                 alt="No order found"
-                className="w-32 h-32 lg:w-56 lg:h-56 object-contain"
+                className="w-32 h-32 lg:w-96 lg:h-96 object-cover"
               />
               <h2 className="text-lg lg:text-xl font-semibold mt-6 text-red-600">
                 #{searchQuery}
@@ -225,7 +223,6 @@ const MyOrders = () => {
             renderOrders(filteredOrders())
           )}
         </section>
-      </AccLayout>
     </main>
   );
 };

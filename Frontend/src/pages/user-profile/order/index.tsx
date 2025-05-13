@@ -1,12 +1,15 @@
-import OrderConfirmationPage from "../../../components/pageComponents/user-profile/order/OrderSummary";
+import MyOrders from "../../../components/pageComponents/user-profile/order/OrderHistory";
+import AccLayout from "../../../components/pageComponents/user-profile/UserSidebar";
+import UserLayout from "../../../layouts/UserLayout";
 
-
-const OrderSummaryPage = () => {
+const UserOrderHistory = () => {
   return (
-    <>
-      <OrderConfirmationPage />
-    </>
+    <UserLayout>
+      <AccLayout>
+        <MyOrders />
+      </AccLayout>
+    </UserLayout>
   );
 };
 
-export default OrderSummaryPage;
+export default UserOrderHistory;

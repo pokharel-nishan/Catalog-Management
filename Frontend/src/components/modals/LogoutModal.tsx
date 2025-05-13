@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 type LogoutModalProps = {
     isOpen: boolean;
     closeModal: () => void;
-  };
+};
 
 const LogoutModal = ({ isOpen, closeModal }: LogoutModalProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -20,13 +20,18 @@ const LogoutModal = ({ isOpen, closeModal }: LogoutModalProps) => {
     sessionStorage.removeItem('authToken');
 
     setShowConfirmModal(true);
+
+    closeModal();
+
     setTimeout(() => {
+      setShowConfirmModal(false); 
       navigate('/');
     }, 2000);
   };
 
   return (
     <>
+      {/* Main Logout Modal */}
       <Modal open={isOpen} footer={null} closeIcon={null} centered>
         <div className="absolute top-3 right-3 p-2 text-black cursor-pointer">
           <RxCross1 onClick={closeModal} size={20} />
@@ -51,6 +56,7 @@ const LogoutModal = ({ isOpen, closeModal }: LogoutModalProps) => {
         </div>
       </Modal>
 
+      {/* Confirmation Modal after Logout */}
       <Modal open={showConfirmModal} footer={null} closable={false} centered>
         <div className="text-center py-6">
           <h2 className="text-xl font-semibold mb-2">You have been logged out</h2>

@@ -12,6 +12,7 @@
     "lib": ["ES2023"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "erasableSyntaxOnly": false,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -24,7 +25,6 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },

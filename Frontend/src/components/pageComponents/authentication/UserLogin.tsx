@@ -31,6 +31,7 @@ export default function LoginComponent() {
   };
 
   return (
+    <div className="h-screen flex items-center justify-center bg-gray-100">
     <div className="flex flex-col md:flex-row max-w-6xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Left side - Form */}
       <div className="w-full md:w-1/2 p-8">
@@ -150,6 +151,7 @@ export default function LoginComponent() {
           />
         </div>
       </div>
+    </div>
     </div>
   );
 }
