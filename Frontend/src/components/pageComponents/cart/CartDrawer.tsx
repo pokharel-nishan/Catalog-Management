@@ -1,27 +1,34 @@
-import React from 'react';
-import { X, Minus, Plus, ShoppingCart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useCart } from './CartContext';
+import React from "react";
+import { X, Minus, Plus, ShoppingCart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "./CartContext";
 
 const CartDrawer: React.FC = () => {
-  const { items, removeFromCart, updateQuantity, total, isCartOpen, setIsCartOpen } = useCart();
+  const {
+    items,
+    removeFromCart,
+    updateQuantity,
+    total,
+    isCartOpen,
+    setIsCartOpen,
+  } = useCart();
   const navigate = useNavigate();
 
   if (!isCartOpen) return null;
 
   const handleCheckout = () => {
     setIsCartOpen(false);
-    navigate('/orders');
+    navigate("/orders");
   };
 
   return (
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black bg-opacity-50"
         onClick={() => setIsCartOpen(false)}
       />
-      
+
       {/* Cart Panel */}
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
         <div className="flex h-full flex-col">
@@ -31,7 +38,7 @@ const CartDrawer: React.FC = () => {
               <ShoppingCart size={20} />
               <h2 className="text-lg font-semibold">Your Cart</h2>
             </div>
-            <button 
+            <button
               onClick={() => setIsCartOpen(false)}
               className="rounded-full p-1 hover:bg-gray-100"
             >
@@ -48,9 +55,12 @@ const CartDrawer: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {items.map((item) => (
-                  <div key={item.id} className="flex gap-4 rounded-lg border p-4">
+                  <div
+                    key={item.id}
+                    className="flex gap-4 rounded-lg border p-4"
+                  >
                     <img
-                      src={item.coverImage}
+                      src={`http://localhost:5213${item.imageURL}`}
                       alt={item.title}
                       className="h-24 w-16 rounded object-cover"
                     />
@@ -59,14 +69,18 @@ const CartDrawer: React.FC = () => {
                       <p className="text-sm text-gray-500">Rs {item.price}</p>
                       <div className="mt-2 flex items-center gap-2">
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity - 1)
+                          }
                           className="rounded-full p-1 hover:bg-gray-100"
                         >
                           <Minus size={16} />
                         </button>
                         <span className="w-8 text-center">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity + 1)
+                          }
                           className="rounded-full p-1 hover:bg-gray-100"
                         >
                           <Plus size={16} />
@@ -107,7 +121,7 @@ const CartDrawer: React.FC = () => {
                   onClick={handleCheckout}
                   className="flex-1 rounded-lg bg-blue-600 py-2 text-white hover:bg-blue-700"
                 >
-                 Proceed to Checkout
+                  Proceed to Checkout
                 </button>
               </div>
             </div>
@@ -118,4 +132,4 @@ const CartDrawer: React.FC = () => {
   );
 };
 
-export default CartDrawer
+export default CartDrawer;

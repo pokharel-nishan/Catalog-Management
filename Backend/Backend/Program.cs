@@ -13,6 +13,7 @@ using Backend.Services.Email;
 using Microsoft.OpenApi.Models;
 using Backend.Services.Notifications;
 using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -129,6 +130,20 @@ builder.Services.AddAuthentication(options =>
 });
 
 var app = builder.Build();
+
+// Serve wwwroot files
+app.UseStaticFiles();
+
+// Serve files from /UploadedFiles
+var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "UploadedFiles");
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/UploadedFiles",
+    ServeUnknownFileTypes = true, // allows PNG, PDF, etc.
+    DefaultContentType = "application/octet-stream"
+});
 
 // Call seeding method to seed roles and admin details
 using (var scope = app.Services.CreateScope())
