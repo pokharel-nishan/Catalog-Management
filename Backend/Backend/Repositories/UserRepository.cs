@@ -25,7 +25,14 @@ public class UserRepository : IUserRepository
         {
             throw new ApplicationException("Failed to create user.");
         }
-
+        
+        // Add user to "Regular" role
+        var roleResult = await _userManager.AddToRoleAsync(user, "Regular");
+        if (!roleResult.Succeeded)
+        {
+            throw new ApplicationException("Failed to create regular user.");
+        }
+        
         return user;
     }
 
