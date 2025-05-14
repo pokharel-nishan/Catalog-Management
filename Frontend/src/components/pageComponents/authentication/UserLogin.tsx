@@ -7,7 +7,7 @@ import apiClient from "../../../api/config.ts";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/AuthContext.tsx";
 
-type UserRole = 'admin' | 'staff' | 'user';
+type UserRole = "Admin" | "Staff" | "Regular";
 
 export default function LoginComponent() {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,49 +36,56 @@ export default function LoginComponent() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-  
+
     if (formData.loginAs !== "User") {
       toast.error("Only 'User' role is allowed to log in.");
       return;
     }
-  
+
     setIsSubmitting(true);
-  
+
     try {
       // API request with the expected structure
       const response = await apiClient.post("/User/login", {
         email: formData.email,
         password: formData.password,
-        rememberMe: formData.rememberMe
+        rememberMe: formData.rememberMe,
       });
-  
+
       console.log("API Response:", response.data);
-  
+
       const userData = {
         id: response.data.id || response.data.userId || "default-id",
-        name: response.data.name || (response.data.firstName + " " + response.data.lastName) || response.data.email.split('@')[0],
+        name:
+          response.data.name ||
+          response.data.firstName + " " + response.data.lastName ||
+          response.data.email.split("@")[0],
         email: response.data.email || formData.email,
-        role: response.data.role || "user" as UserRole,
+        role: response.data?.roles[0] || ("Regular" as UserRole),
         token: response.data.token,
         avatarUrl: response.data.avatarUrl,
-        address: response.data.address
+        address: response.data.address,
       };
-  
+
       login(userData);
-  
+
       toast.success("Login successful! Redirecting...");
-  
+
       setTimeout(() => {
-        navigate("/");
+        if (userData.role === "Admin" || userData.role === "Staff") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       }, 2000);
     } catch (error: any) {
       console.error("Login failed:", error);
-      
+
       if (error.response) {
         console.error("Response data:", error.response.data);
         console.error("Response status:", error.response.status);
       }
-      
+
       toast.error(
         error.response?.data?.message || "Login failed. Please try again."
       );
@@ -112,7 +119,9 @@ export default function LoginComponent() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-gray-700 font-medium">Password</label>
+              <label className="block text-gray-700 font-medium">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -133,7 +142,9 @@ export default function LoginComponent() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-gray-700 font-medium">Login as</label>
+              <label className="block text-gray-700 font-medium">
+                Login as
+              </label>
               <div className="relative">
                 <select
                   name="loginAs"
@@ -161,11 +172,17 @@ export default function LoginComponent() {
                   onChange={handleChange}
                   className="h-4 w-4 text-blue-600 rounded"
                 />
-                <label htmlFor="remember" className="ml-2 text-gray-700 text-sm">
+                <label
+                  htmlFor="remember"
+                  className="ml-2 text-gray-700 text-sm"
+                >
                   Remember Me
                 </label>
               </div>
-              <a href="#forgot" className="text-blue-600 text-sm hover:underline">
+              <a
+                href="#forgot"
+                className="text-blue-600 text-sm hover:underline"
+              >
                 Forgot Password?
               </a>
             </div>
@@ -174,7 +191,9 @@ export default function LoginComponent() {
               type="submit"
               disabled={isSubmitting}
               className={`w-full py-3 ${
-                isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-[#2BA1AA] hover:bg-teal-600"
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#2BA1AA] hover:bg-teal-600"
               } text-white rounded-md transition duration-300`}
             >
               {isSubmitting ? "Logging in..." : "Login"}
