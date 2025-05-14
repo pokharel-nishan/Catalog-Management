@@ -17,7 +17,8 @@ namespace Backend.Services
         private readonly IOrderNotificationService _orderNotificationService;
 
         public OrderService(IOrderRepository orderRepository, IOrderBookRepository orderBookRepository,
-            IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository, IOrderNotificationService orderNotificationService)
+            IUserRepository userRepository, EmailService emailService, ICartRepository cartRepository,
+            IOrderNotificationService orderNotificationService)
         {
             _orderRepository = orderRepository;
             _emailService = emailService;
@@ -25,27 +26,55 @@ namespace Backend.Services
             _orderBookRepository = orderBookRepository;
             _cartRepository = cartRepository;
             _orderNotificationService = orderNotificationService;
-
         }
 
         private async Task SendOrderConfirmationMail(Order order)
         {
             try
             {
-                // Get Order Books
                 var orderBooks = await _orderBookRepository.GetOrderBooksAsync(order.OrderId);
+                var userDetails = await _userRepository.GetUserByIdAsync(order.UserId);
+                string emailSubject = $"Your Order Confirmation - #{order.OrderId}";
+                string recipientEmail = userDetails.Email;
 
-                // Build the invoice
-                // Order Details
+                // HTML email template with CSS styling
                 StringBuilder emailBody = new StringBuilder();
-                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>"); // Header
-                emailBody.AppendLine($"<p><strong>Claim Code:</strong> {order.ClaimCode}</p>"); // Claim Code
-                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>"); // Order Date
-                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>"); // Order Status
+                emailBody.AppendLine(@"<!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background-color: #4CAF50; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+                    .content { padding: 20px; background-color: #f9f9f9; border-radius: 0 0 5px 5px; }
+                    .order-info { background-color: white; padding: 15px; margin-bottom: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    .book-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+                    .book-item:last-child { border-bottom: none; }
+                    .total { font-weight: bold; font-size: 1.1em; margin-top: 15px; }
+                    .footer { margin-top: 20px; font-size: 0.9em; color: #777; text-align: center; }
+                    .status { display: inline-block; padding: 5px 10px; background-color: #e3f2fd; color: #1976d2; border-radius: 3px; }
+                </style>
+            </head>
+            <body>
+                <div class='header'>
+                    <h2>Thank you for your order!</h2>
+                </div>
+                <div class='content'>
+                    <div class='order-info'>
+                        <h3>Order #" + order.OrderId + @"</h3>
+                        <p><strong>Order Date:</strong> " + order.OrderDate.ToString("f") + @"</p>
+                        <p><strong>Status:</strong> <span class='status'>" + order.Status + @"</span></p>");
 
-                emailBody.AppendLine($"<h3>Order Details:</h3>");
+                if (!string.IsNullOrEmpty(order.ClaimCode))
+                {
+                    emailBody.AppendLine(@"<p><strong>Claim Code:</strong> <span style='font-size:1.2em;'>" +
+                                         order.ClaimCode + @"</span></p>");
+                }
 
-                // Book Details
+                emailBody.AppendLine(@"
+                    </div>
+                    
+                    <h3>Order Details</h3>");
+
                 foreach (var orderBook in orderBooks)
                 {
                     var title = orderBook.Book.Title;
@@ -55,20 +84,33 @@ namespace Backend.Services
                     var discountedBookPrice = unitPrice * (1 - bookDiscount);
                     var subtotal = discountedBookPrice * quantity;
 
-                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>"); // Book Title
-                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>"); // Quantity
-                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>"); // Unit Price
-                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>"); // Book Discount (Individual)
-                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>"); // Book Subtotal
+                    emailBody.AppendLine(@"
+                        <div class='book-item'>
+                            <p><strong>" + title + @"</strong></p>
+                            <p>Quantity: " + quantity + @"</p>
+                            <p>Price: " + unitPrice.ToString("C") + @" " +
+                                         (bookDiscount > 0
+                                             ? "<span style='color:#4CAF50;'>(" + (bookDiscount * 100) +
+                                               @"% off)</span>"
+                                             : "") + @"</p>
+                            <p><strong>Subtotal: " + subtotal.ToString("C") + @"</strong></p>
+                        </div>");
                 }
 
-                // Total Quantity, Total Discount, Total Price
-                emailBody.AppendLine($"<p><strong>Total Quantity:</strong> {order.TotalQuantity}</p>");
-                emailBody.AppendLine($"<p><strong>Total Discount:</strong> {order.Discount * 100}</p>");
-                emailBody.AppendLine($"<h3>Grand Total: {order.TotalPrice:C}</h3>");
-
-                string emailSubject = $"Invoice for Order {order.OrderId}";
-                string recipientEmail = order.User.Email;
+                emailBody.AppendLine(@"
+                    <div class='total'>
+                        <p>Total Quantity: " + order.TotalQuantity + @"</p>
+                        <p>Total Discount: " + (order.Discount * 100).ToString("0.##") + @"%</p>
+                        <p style='font-size:1.2em;'>Grand Total: " + order.TotalPrice.ToString("C") + @"</p>
+                    </div>
+                    
+                    <div class='footer'>
+                        <p>If you have any questions about your order, please contact our support team.</p>
+                        <p>Thank you for shopping with us!</p>
+                    </div>
+                </div>
+            </body>
+            </html>");
 
                 await _emailService.SendEmailAsync(recipientEmail, emailSubject, emailBody.ToString());
             }
@@ -82,19 +124,46 @@ namespace Backend.Services
         {
             try
             {
-                // Get Order Books
                 var orderBooks = await _orderBookRepository.GetOrderBooksAsync(order.OrderId);
+                var userDetails = await _userRepository.GetUserByIdAsync(order.UserId);
 
-                // Build the invoice
-                // Order Details
+                string emailSubject = $"Your Order #{order.OrderId} is Complete!";
+                string recipientEmail = userDetails.Email;
+
                 StringBuilder emailBody = new StringBuilder();
-                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>"); // Header
-                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>"); // Order Date
-                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>"); // Order Status
+                emailBody.AppendLine(@"<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2196F3; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { padding: 20px; background-color: #f9f9f9; border-radius: 0 0 5px 5px; }
+        .order-info { background-color: white; padding: 15px; margin-bottom: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .book-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .book-item:last-child { border-bottom: none; }
+        .total { font-weight: bold; font-size: 1.1em; margin-top: 15px; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #777; text-align: center; }
+        .status { display: inline-block; padding: 5px 10px; background-color: #e8f5e9; color: #2e7d32; border-radius: 3px; }
+        .highlight-box { background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h2>Your Order is Complete!</h2>
+    </div>
+    <div class='content'>
+        <div class='highlight-box'>
+            <p>We're happy to let you know that your order has been successfully completed.</p>
+        </div>
+        
+        <div class='order-info'>
+            <h3>Order #" + order.OrderId + @"</h3>
+            <p><strong>Order Date:</strong> " + order.OrderDate.ToString("f") + @"</p>
+            <p><strong>Status:</strong> <span class='status'>" + order.Status + @"</span></p>
+        </div>
+        
+        <h3>Order Details</h3>");
 
-                emailBody.AppendLine($"<h3>Order Details:</h3>");
-
-                // Book Details
                 foreach (var orderBook in orderBooks)
                 {
                     var title = orderBook.Book.Title;
@@ -104,26 +173,39 @@ namespace Backend.Services
                     var discountedBookPrice = unitPrice * (1 - bookDiscount);
                     var subtotal = discountedBookPrice * quantity;
 
-                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>"); // Book Title
-                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>"); // Quantity
-                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>"); // Unit Price
-                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>"); // Book Discount (Individual)
-                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>"); // Book Subtotal
+                    emailBody.AppendLine(@"
+            <div class='book-item'>
+                <p><strong>" + title + @"</strong></p>
+                <p>Quantity: " + quantity + @"</p>
+                <p>Price: " + unitPrice.ToString("C") + @" " +
+                                         (bookDiscount > 0
+                                             ? "<span style='color:#4CAF50;'>(" + (bookDiscount * 100) +
+                                               @"% off)</span>"
+                                             : "") + @"</p>
+                <p><strong>Subtotal: " + subtotal.ToString("C") + @"</strong></p>
+            </div>");
                 }
 
-                // Total Quantity, Total Discount, Total Price
-                emailBody.AppendLine($"<p><strong>Total Quantity:</strong> {order.TotalQuantity}</p>");
-                emailBody.AppendLine($"<p><strong>Total Discount:</strong> {order.Discount * 100}</p>");
-                emailBody.AppendLine($"<h3>Grand Total: {order.TotalPrice:C}</h3>");
-
-                string emailSubject = $"Invoice for Order {order.OrderId}";
-                string recipientEmail = order.User.Email;
+                emailBody.AppendLine(@"
+        <div class='total'>
+            <p>Total Quantity: " + order.TotalQuantity + @"</p>
+            <p>Total Discount: " + (order.Discount * 100).ToString("0.##") + @"%</p>
+            <p style='font-size:1.2em;'>Grand Total: " + order.TotalPrice.ToString("C") + @"</p>
+        </div>
+        
+        <div class='footer'>
+            <p>We hope you enjoyed your shopping experience with us!</p>
+            <p>If you need any assistance, please contact our customer support.</p>
+        </div>
+    </div>
+</body>
+</html>");
 
                 await _emailService.SendEmailAsync(recipientEmail, emailSubject, emailBody.ToString());
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending order confirmation email: {ex.Message}");
+                Console.WriteLine($"Error sending order completion email: {ex.Message}");
             }
         }
 
@@ -131,20 +213,51 @@ namespace Backend.Services
         {
             try
             {
-                // Get Order Books
                 var orderBooks = await _orderBookRepository.GetOrderBooksAsync(order.OrderId);
 
-                // Build the invoice
-                // Order Details
+                string emailSubjectForUser = $"Your Order #{order.OrderId} Has Been Cancelled";
+                string emailSubjectForStaff = $"Order #{order.OrderId} Cancellation Notification";
+
                 StringBuilder emailBody = new StringBuilder();
-                emailBody.AppendLine($"<h2>Invoice for Order: {order.OrderId}</h2>"); // Header
-                emailBody.AppendLine($"<p><strong>Claim Code:</strong> {order.ClaimCode}</p>"); // Claim Code
-                emailBody.AppendLine($"<p><strong>Order Date:</strong> {order.OrderDate}</p>"); // Order Date
-                emailBody.AppendLine($"<p><strong>Status:</strong> {order.Status}</p>"); // Order Status
+                emailBody.AppendLine(@"<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f44336; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { padding: 20px; background-color: #f9f9f9; border-radius: 0 0 5px 5px; }
+        .order-info { background-color: white; padding: 15px; margin-bottom: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .book-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .book-item:last-child { border-bottom: none; }
+        .total { font-weight: bold; font-size: 1.1em; margin-top: 15px; }
+        .footer { margin-top: 20px; font-size: 0.9em; color: #777; text-align: center; }
+        .status { display: inline-block; padding: 5px 10px; background-color: #ffebee; color: #c62828; border-radius: 3px; }
+        .highlight-box { background-color: #ffebee; padding: 15px; border-radius: 5px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h2>Order Cancellation</h2>
+    </div>
+    <div class='content'>
+        <div class='highlight-box'>
+            <p>Your order has been cancelled as requested. Below are the details of your cancelled order.</p>
+        </div>
+        
+        <div class='order-info'>
+            <h3>Order #" + order.OrderId + @"</h3>
+            <p><strong>Order Date:</strong> " + order.OrderDate.ToString("f") + @"</p>");
 
-                emailBody.AppendLine($"<h3>Order Details:</h3>");
+                if (!string.IsNullOrEmpty(order.ClaimCode))
+                {
+                    emailBody.AppendLine(@"<p><strong>Claim Code:</strong> " + order.ClaimCode + @"</p>");
+                }
 
-                // Book Details
+                emailBody.AppendLine(@"<p><strong>Status:</strong> <span class='status'>" + order.Status + @"</span></p>
+        </div>
+        
+        <h3>Order Details</h3>");
+
                 foreach (var orderBook in orderBooks)
                 {
                     var title = orderBook.Book.Title;
@@ -154,24 +267,40 @@ namespace Backend.Services
                     var discountedBookPrice = unitPrice * (1 - bookDiscount);
                     var subtotal = discountedBookPrice * quantity;
 
-                    emailBody.AppendLine($"<p><strong>Book Title:</strong> {title}</p>"); // Book Title
-                    emailBody.AppendLine($"<p>Quantity: {quantity}</p>"); // Quantity
-                    emailBody.AppendLine($"<p>Unit Price: {unitPrice:C}</p>"); // Unit Price
-                    emailBody.AppendLine($"<p>Book Discount: {bookDiscount * 100}%</p>"); // Book Discount (Individual)
-                    emailBody.AppendLine($"<p><strong>Subtotal:</strong> {subtotal:C}</p><hr>"); // Book Subtotal
+                    emailBody.AppendLine(@"
+            <div class='book-item'>
+                <p><strong>" + title + @"</strong></p>
+                <p>Quantity: " + quantity + @"</p>
+                <p>Price: " + unitPrice.ToString("C") + @" " +
+                                         (bookDiscount > 0
+                                             ? "<span style='color:#4CAF50;'>(" + (bookDiscount * 100) +
+                                               @"% off)</span>"
+                                             : "") + @"</p>
+                <p><strong>Subtotal: " + subtotal.ToString("C") + @"</strong></p>
+            </div>");
                 }
 
-                // Total Quantity, Total Discount, Total Price
-                emailBody.AppendLine($"<p><strong>Total Quantity:</strong> {order.TotalQuantity}</p>");
-                emailBody.AppendLine($"<p><strong>Total Discount:</strong> {order.Discount * 100}</p>");
-                emailBody.AppendLine($"<h3>Grand Total: {order.TotalPrice:C}</h3>");
+                emailBody.AppendLine(@"
+        <div class='total'>
+            <p>Total Quantity: " + order.TotalQuantity + @"</p>
+            <p>Total Discount: " + (order.Discount * 100).ToString("0.##") + @"%</p>
+            <p style='font-size:1.2em;'>Grand Total: " + order.TotalPrice.ToString("C") + @"</p>
+        </div>
+        
+        <div class='footer'>
+            <p>If this cancellation was unexpected or you need any assistance, please contact our support team.</p>
+            <p>We hope to serve you again in the future.</p>
+        </div>
+    </div>
+</body>
+</html>");
 
-                string emailSubjectForUser = $"Your Order {order.OrderId} has been cancelled.";
-                string emailSubjectForStaff = $"Order {order.OrderId} has been cancelled.";
+                // Send to user
+                var userDetails = await _userRepository.GetUserByIdAsync(order.UserId);
+                string recipientEmail = userDetails.Email;
+                await _emailService.SendEmailAsync(recipientEmail, emailSubjectForUser, emailBody.ToString());
 
-                var recipientUserEmail = order.User.Email;
-                await _emailService.SendEmailAsync(recipientUserEmail, emailSubjectForUser, emailBody.ToString());
-
+                // Send to staff (same content but different subject)
                 var staffUsers = await _userRepository.GetAllStaffUsersAsync();
                 foreach (var staffUser in staffUsers)
                 {
@@ -258,7 +387,9 @@ namespace Backend.Services
             {
                 await _orderNotificationService.NotifyOrderCompletion(orderId);
                 await SendOrderCompletionMail(order);
-            };
+            }
+
+            ;
             return success;
         }
 
@@ -282,8 +413,8 @@ namespace Backend.Services
                     ImageUrl = ob.Book.ImageURL,
                     Quantity = ob.BookQuantity,
                     UnitPrice = ob.BookTotal / ob.BookQuantity,
-                    Discount = (ob.BookQuantity == 0 || ob.Book.Price == 0) 
-                        ? 0 
+                    Discount = (ob.BookQuantity == 0 || ob.Book.Price == 0)
+                        ? 0
                         : 1 - (ob.BookTotal / (ob.BookQuantity * ob.Book.Price)),
                     Subtotal = ob.BookTotal
                 }).ToList()
@@ -314,7 +445,7 @@ namespace Backend.Services
             var orders = await _orderRepository.GetAllOrdersAsync();
             return orders.Select(o => MapOrderToDto(o));
         }
-        
+
         public async Task<IEnumerable<OrderDTO>> GetOrdersByStatusAsync(OrderStatus status)
         {
             var orders = await _orderRepository.GetOrdersByStatusAsync(status);
