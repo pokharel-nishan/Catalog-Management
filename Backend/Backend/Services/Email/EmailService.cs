@@ -24,14 +24,15 @@ namespace Backend.Services.Email
 
             var email = new MimeMessage();
             email.From.Add(new MailboxAddress(senderName, senderEmail));
+            email.To.Add(new MailboxAddress("", recipientEmail));
             email.Subject = subject;
 
-            var bodyBuilder = new BodyBuilder { TextBody = body };
+            var bodyBuilder = new BodyBuilder { HtmlBody = body };
             email.Body = bodyBuilder.ToMessageBody();
 
             using (var smtpClient = new SmtpClient())
             {
-                await smtpClient.ConnectAsync(smtpServer, smtpPort, false);
+                await smtpClient.ConnectAsync(smtpServer, smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
                 await smtpClient.AuthenticateAsync(smtpUsername, smtpPassword);
                 await smtpClient.SendAsync(email);
                 await smtpClient.DisconnectAsync(true);
