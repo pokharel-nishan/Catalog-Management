@@ -7,6 +7,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { jwtDecode } from "jwt-decode"; // Import jwt-decode
+import { AxiosError } from "axios"; // Import AxiosError for type safety
 
 type SortOption = "alphabetical" | "date-newest" | "date-oldest";
 
@@ -14,6 +15,31 @@ interface DecodedToken {
   exp: number;
   sub?: string;
   nameid?: string;
+}
+
+// Define BookResponse to match backend response
+interface BookResponse {
+  bookId: string;
+  isbn: string;
+  userId: string;
+  title: string;
+  author: string;
+  publisher: string;
+  publicationDate: string;
+  genre: string;
+  language: string;
+  format: string;
+  description: string;
+  price: number;
+  stock: number;
+  inStock: boolean;
+  imageURL: string;
+  discount: number;
+  discountStartDate: string | null;
+  discountEndDate: string | null;
+  arrivalDate: string | null;
+  user: any; // Adjust type if needed
+  
 }
 
 const UserWishlist = () => {
@@ -41,16 +67,16 @@ const UserWishlist = () => {
   // Fetch wishlist from backend
   useEffect(() => {
     const fetchWishlist = async () => {
-      console.log("Fetching wishlist, user:", user); // Debug before fetch
+      // Wait for user to be initialized
       if (!user) {
-        console.log("No user found, setting error.");
-        setError("Please log in to view your wishlist.");
-        setLoading(false);
+        console.log("Waiting for user initialization...");
+        setTimeout(fetchWishlist, 100); // Retry after 100ms
         return;
       }
 
+      console.log("Fetching wishlist, user:", user); // Debug before fetch
       if (isTokenExpired(user.token)) {
-        console.log("Token expired, logging out.");
+        console.log("Token expired, logging out. Exp:", jwtDecode(user.token).exp);
         setError("Session expired. Please log in again.");
         logout();
         navigate("/login");
@@ -62,19 +88,44 @@ const UserWishlist = () => {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         console.log("Wishlist response:", response.data); // Debug response
-        setWishlist(response.data); // Adjust based on actual response structure
-      } catch (error: unknown) {
-        const axiosError = error as { response?: { status?: number; data?: any } };
-        console.error("Failed to fetch wishlist:", axiosError.response?.data);
+        // Map backend response to WishlistItem
+        const books: BookResponse[] = response.data.books || response.data;
+        const mappedWishlist: WishlistItem[] = books.map((book) => ({
+          id: book.bookId,
+          bookId: book.bookId,
+          isbn: book.isbn,
+          userId: book.userId,
+          title: book.title,
+          author: book.author,
+          publisher: book.publisher,
+          publicationDate: book.publicationDate,
+          genre: book.genre,
+          language: book.language,
+          format: book.format,
+          description: book.description,
+          price: book.price,
+          stock: book.stock,
+          coverImage: book.imageURL,
+          discount: book.discount,
+          discountStartDate: book.discountStartDate,
+          discountEndDate: book.discountEndDate,
+          arrivalDate: book.arrivalDate,
+          user: book.user,
+          rating: 0, // Default rating if not provided
+          voters: 0, // Default voters if not provided
+          createdAt: book.publicationDate || new Date().toISOString(), // Use publicationDate or current time
+          inStock: book.stock > 0,
+        }));
+        setWishlist(mappedWishlist);
+      } catch (error) {
+        const axiosError = error as AxiosError<{ message?: string }>;
+        console.error("Failed to fetch wishlist:", axiosError.response?.data || axiosError.message);
         if (axiosError.response?.status === 401) {
           setError("Session expired. Please log in again.");
           logout();
           navigate("/login");
-        } else if (axiosError.response?.status === 404) {
-          console.log("Endpoint not found. Check API route.");
-          setError("Failed to load wishlist. Please try again later.");
         } else {
-          setError("Failed to load wishlist. Please try again later.");
+          setError("Failed to load wishlist. Please try again later. (Server may be down)");
         }
       } finally {
         setLoading(false);
@@ -103,9 +154,9 @@ const UserWishlist = () => {
       });
       setWishlist(wishlist.filter((book) => book.id !== bookId));
       toast.success("Item removed from wishlist!");
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { status?: number; data?: any } };
-      console.error("Failed to remove from wishlist:", axiosError.response?.data);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      console.error("Failed to remove from wishlist:", axiosError.response?.data || axiosError.message);
       if (axiosError.response?.status === 401) {
         setError("Session expired. Please log in again.");
         logout();
@@ -203,7 +254,7 @@ const UserWishlist = () => {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {wishlist.map((book) => (
                 <div
                   key={book.id}
