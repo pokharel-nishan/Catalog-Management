@@ -319,20 +319,47 @@ namespace Backend.Services
             if (cart == null || !(await _cartRepository.GetCartItemsAsync(cart.Id)).Any())
                 return null;
 
+            var cartItems = await _cartRepository.GetCartItemsAsync(cart.Id);
+            
+            // Calculate total quantity and base price
+            int totalQuantity = cartItems.Sum(item => item.Quantity);
+            decimal totalPrice = cartItems.Sum(item => 
+                item.Book.Price * (1 - item.Book.Discount) * item.Quantity);
+            
+            decimal discount = 0;
+            
+            // 5% discount for more than 5 books
+            if (totalQuantity >= 5)
+            {
+                discount += 0.05m;
+            }
+            
+            // 10% discount after 10 successful orders
+            var userOrders = await _orderRepository.GetUserOrdersAsync(userId);
+            int completedOrdersCount = userOrders.Count(o => o.Status == OrderStatus.Completed);
+            
+            if (completedOrdersCount >= 10)
+            {
+                discount += 0.10m;
+            }
+            
+            // Apply discount to total price
+            decimal discountedTotalPrice = totalPrice * (1 - discount);
+
             var order = new Order
             {
                 UserId = userId,
                 CartId = cart.Id,
                 OrderDate = DateTime.UtcNow,
-                TotalQuantity = cart.TotalQuantity,
-                TotalPrice = cart.TotalPrice,
+                TotalQuantity = totalQuantity,
+                TotalPrice = discountedTotalPrice,
+                Discount = discount,
                 Status = OrderStatus.Pending,
                 ClaimCode = Guid.NewGuid().ToString().Substring(0, 10).ToUpper()
             };
 
             var createdOrder = await _orderRepository.CreateOrderAsync(order);
 
-            var cartItems = await _cartRepository.GetCartItemsAsync(cart.Id);
             foreach (var cartItem in cartItems)
             {
                 var discountedPrice = cartItem.Book.Price * (1 - cartItem.Book.Discount);
@@ -398,26 +425,27 @@ namespace Backend.Services
             var order = await _orderRepository.GetOrderWithDetailsAsync(orderId);
             if (order == null) return null;
 
+            var items = order.OrderBooks.Select(ob => new OrderItemDTO
+            {
+                BookId = ob.BookId,
+                Title = ob.Book.Title,
+                ImageUrl = ob.Book.ImageURL,
+                Quantity = ob.BookQuantity,
+                UnitPrice = ob.Book.Price,
+                Discount = ob.Book.Discount, 
+                Subtotal = ob.BookTotal
+            }).ToList();
+
             return new OrderDTO
             {
                 OrderId = order.OrderId,
                 OrderDate = order.OrderDate,
                 Status = order.Status.ToString(),
                 TotalPrice = order.TotalPrice,
+                 Discount= order.Discount, 
                 ClaimCode = order.ClaimCode,
                 UserId = order.UserId,
-                Items = order.OrderBooks.Select(ob => new OrderItemDTO
-                {
-                    BookId = ob.BookId,
-                    Title = ob.Book.Title,
-                    ImageUrl = ob.Book.ImageURL,
-                    Quantity = ob.BookQuantity,
-                    UnitPrice = ob.BookTotal / ob.BookQuantity,
-                    Discount = (ob.BookQuantity == 0 || ob.Book.Price == 0)
-                        ? 0
-                        : 1 - (ob.BookTotal / (ob.BookQuantity * ob.Book.Price)),
-                    Subtotal = ob.BookTotal
-                }).ToList()
+                Items = items
             };
         }
 
