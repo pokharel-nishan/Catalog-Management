@@ -29,7 +29,7 @@ namespace Backend.Services
                     Genre = addBookDTO.Genre,
                     Language = addBookDTO.Language,
                     Format = addBookDTO.Format,
-                    ImageURL = addBookDTO.ImageURL,
+                    ImageURL = addBookDTO.ImageUrl,
                     Description = addBookDTO.Description,
                     Price = addBookDTO.Price,
                     Stock = addBookDTO.Stock,
@@ -126,7 +126,9 @@ namespace Backend.Services
                     Price = book.Price,
                     Discount = book.Discount,
                     IsOnSale = book.Discount != null && book.Discount > 0,
-                    InStock = book.Stock > 0
+                    InStock = book.Stock > 0,
+                    ImageURL = book.ImageURL,
+                    Description = book.Description,
                 }).ToList();
 
                 // Calculate total pages
@@ -176,6 +178,7 @@ namespace Backend.Services
                     Discount = book.Discount,
                     IsOnSale = book.Discount != null && book.Discount > 0,
                     Stock = book.Stock,
+                    ImageURL = book.ImageURL,
                 };
             }
             catch (Exception ex)

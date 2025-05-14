@@ -13,7 +13,6 @@ import {
 import { toast } from "react-toastify";
 import { useAuth } from "../../../../context/AuthContext";
 import apiClient from "../../../../api/config";
-import { useCart } from "../../cart/CartContext";
 
 interface BookType {
   id: string;
@@ -87,7 +86,7 @@ const BookItem: React.FC<{ book: BookType }> = ({ book }) => (
     <div className="w-16 h-24 bg-gray-100 flex-shrink-0 rounded overflow-hidden">
       {book.coverImage ? (
         <img
-          src={book.coverImage}
+          src={`http://localhost:5213${book.coverImage}`}
           alt={book.title}
           className="w-full h-full object-cover"
         />
@@ -127,7 +126,6 @@ const OrderConfirmation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth() as { user: AuthUser; logout: () => void };
-  const { syncCart } = useCart(); // Keep syncCart, though not used now
   const [order, setOrder] = useState<OrderType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

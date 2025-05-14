@@ -54,7 +54,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           bookId: item.bookId,
           title: item.bookTitle,
           price: item.price || 0,
-          coverImage: item.imageUrl || "/default-image.png",
+          imageURL: item.imageUrl || "/default-image.png",
           discount: item.discount || 0,
           quantity: item.quantity,
           inStock: true,

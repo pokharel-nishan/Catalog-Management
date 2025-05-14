@@ -105,7 +105,7 @@ const UserWishlist = () => {
           description: book.description,
           price: book.price,
           stock: book.stock,
-          coverImage: book.imageURL,
+          imageURL: book.imageURL,
           discount: book.discount,
           discountStartDate: book.discountStartDate,
           discountEndDate: book.discountEndDate,
@@ -261,7 +261,7 @@ const UserWishlist = () => {
                   className="p-4 bg-white rounded-xl shadow-md border border-gray-200"
                 >
                   <img
-                    src={book.coverImage}
+                    src={`http://localhost:5213${book.imageURL}`}
                     alt={book.title}
                     className="w-full h-64 object-cover rounded-md"
                   />

@@ -6,7 +6,8 @@ import { useCart } from "../cart/CartContext";
 import { useAuth } from "../../../context/AuthContext";
 import type { Book } from "../../../types/book";
 import apiClient from "../../../api/config";
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from "jwt-decode"; 
+
 
 interface BookCardProps {
   books: Book[];
@@ -110,7 +111,9 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
                   const axiosError = error as { response?: { status?: number; data?: any } };
                   console.error(`Failed to fetch bookmark status for book ${bookId}:`, axiosError);
                   if (axiosError.response?.status === 401) {
-                    toast.error("Session expired during bookmark check. Logging out.");
+                    toast.error(
+                      "Session expired during bookmark check. Logging out."
+                    );
                     logout();
                     navigate("/login");
                   }
@@ -118,10 +121,13 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
                 });
             })
           );
-          const initialLikedBooks = bookmarkChecks.reduce((acc, { bookId, isBookmarked }) => {
-            if (bookId) acc[bookId] = isBookmarked;
-            return acc;
-          }, {} as { [key: string]: boolean });
+          const initialLikedBooks = bookmarkChecks.reduce(
+            (acc, { bookId, isBookmarked }) => {
+              if (bookId) acc[bookId] = isBookmarked;
+              return acc;
+            },
+            {} as { [key: string]: boolean }
+          );
           setLikedBooks(initialLikedBooks);
         }
       } catch (error: unknown) {
@@ -258,14 +264,16 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
               <div className="w-[80%] bg-white border border-none rounded-lg" />
             </div>
 
+            {/* Content */}
             <div className="flex w-full relative pt-6 z-10">
-              <div className="w-1/3 overflow-hidden relative">
-                <Link to={`/books/${bookId}`}>
+              <div className="w-1/3 overflow-hidden">
+                <Link to={`/books/${book.id}`}>
                   <img
-                    src={book.imageURL || "/books/book1.png"}
+                    src={`http://localhost:5213${book.imageURL}`}
                     alt={book.title}
                     className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                   />
+
                   {book.discount > 0 && (
                     <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                       {(book.discount * 100).toFixed(0)}% OFF
@@ -281,9 +289,14 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
 
               <div className="w-2/3 pl-8 flex flex-col p-4">
                 <Link to={`/books/${bookId}`} className="flex flex-col gap-1">
-                  <h1 className="text-xl font-bold line-clamp-1">{book.title}</h1>
+                  <h1 className="text-xl font-bold line-clamp-1">
+                    {book.title}
+                  </h1>
                   <p className="text-lg text-gray-600">By {book.author}</p>
                   <div className="mt-2">{renderStars(bookId)}</div>
+                  <p className="text-xs text-gray-400 line-clamp-3 mt-2">
+                    {book.description || "No description available."}
+                  </p>
                   <p className="text-xs text-gray-400 line-clamp-3 mt-2">
                     {book.description || "No description available."}
                   </p>
@@ -311,7 +324,11 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
                   <button
                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                     onClick={() => handleWishlistClick(bookId)}
-                    aria-label={likedBooks[bookId] ? "Remove from Wishlist" : "Add to Wishlist"}
+                    aria-label={
+                      likedBooks[bookId]
+                        ? "Remove from Wishlist"
+                        : "Add to Wishlist"
+                    }
                   >
                     {likedBooks[bookId] ? (
                       <HeartIcon className="w-6 h-6 text-orange-400 transition-colors" />

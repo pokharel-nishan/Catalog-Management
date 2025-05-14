@@ -109,7 +109,7 @@ const CartDrawer: React.FC = () => {
                   return (
                     <div key={item.id} className="flex gap-4 rounded-lg border p-4">
                       <img
-                        src={item.coverImage}
+                        src={`http://localhost:5213${item.imageURL}`}
                         alt={item.title}
                         className="h-24 w-16 rounded object-cover"
                       />

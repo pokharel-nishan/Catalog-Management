@@ -9,5 +9,9 @@ public class BookSummaryDTO
     public decimal Price { get; set; }
     public decimal? Discount { get; set; }
     public bool IsOnSale { get; set; }
+    
+    public string Description { get; set; }
+    
+    public string ImageURL { get; set; } = string.Empty;
     public bool InStock { get; set; }
 }

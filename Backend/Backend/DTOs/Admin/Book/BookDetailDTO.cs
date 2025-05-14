@@ -18,4 +18,6 @@ public class BookDetailDTO
     public int Stock { get; set; }
     public bool InStock => Stock > 0;
     public DateTime? OnSaleUntil { get; set; }
+    public string ImageURL { get; set; }
+
 }

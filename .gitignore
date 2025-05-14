@@ -69,6 +69,7 @@ Backend/Backend/appsettings.Development.json
 Backend/Backend/appsettings.json
 Backend/.idea/
 Backend/Backend/.DS_Store
+Backend/Backend/UploadedFiles/
 
 # Frontend 
 Frontend/logs
