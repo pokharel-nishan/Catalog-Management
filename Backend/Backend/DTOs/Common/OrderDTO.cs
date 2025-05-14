@@ -8,5 +8,7 @@ public class OrderDTO
     public string Status { get; set; }
     public decimal TotalPrice { get; set; }
     public string ClaimCode { get; set; }
+    
+    public decimal? Discount { get; set; }
     public List<OrderItemDTO> Items { get; set; } = new();
 }
