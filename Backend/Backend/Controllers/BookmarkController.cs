@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.JsonWebTokens;
 
@@ -16,6 +17,7 @@ public class BookmarkController: ControllerBase
         _bookmarkService = bookmarkService;
     }
     
+    [Authorize(Roles = "Regular")]
     [HttpPost("toggle/{bookId}")]
     public async Task<IActionResult> ToggleBookmark(Guid bookId)
     {
@@ -26,6 +28,7 @@ public class BookmarkController: ControllerBase
         return Ok(new { success });
     }
     
+    [Authorize(Roles = "Regular")]
     [HttpGet("my-books")]
     public async Task<IActionResult> GetMyBookmarkedBooks()
     {
@@ -36,6 +39,7 @@ public class BookmarkController: ControllerBase
         return Ok(new { books });
     }
     
+    [Authorize(Roles = "Regular")]
     [HttpGet("check/{bookId}")]
     public async Task<IActionResult> IsBookBookmarked(Guid bookId)
     {

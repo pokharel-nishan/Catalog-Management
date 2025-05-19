@@ -21,6 +21,7 @@ public class OrderController : ControllerBase
         _userService = userService;
     }
 
+    [Authorize(Roles = "Regular")]
     [HttpPost("checkout")]
     public async Task<IActionResult> Checkout()
     {
@@ -38,6 +39,7 @@ public class OrderController : ControllerBase
         });
     }
 
+    [Authorize(Roles = "Regular")]
     [HttpPost("confirm-order/{orderId}")]
     public async Task<IActionResult> ConfirmOrder(Guid orderId)
     {
@@ -50,8 +52,8 @@ public class OrderController : ControllerBase
             : BadRequest(new { success = false, message = "Order confirmation failed" });
     }
     
+    [Authorize(Roles = "Staff")]
     [HttpPost("complete-order/{orderId}")]
-    // [Authorize(Roles = "Staff")]
     public async Task<IActionResult> CompleteOrder(Guid orderId, [FromBody] CompleteOrderRequest request)
     {
         var success = await _orderService.CompleteOrderAsync(orderId, request.ClaimCode);
@@ -60,6 +62,7 @@ public class OrderController : ControllerBase
             : BadRequest(new { success = false, message = "Invalid claim code or order state" });
     }
     
+    [Authorize(Roles = "Regular")]
     [HttpPost("cancel-order/{orderId}")]
     public async Task<IActionResult> CancelOrder(Guid orderId)
     {
@@ -72,6 +75,7 @@ public class OrderController : ControllerBase
             : BadRequest(new { success = false, message = "Order cancellation failed" });
     }
     
+    [Authorize(Roles = "Admin, Staff, Regular")]
     [HttpGet("{orderId}")]
     public async Task<IActionResult> GetOrderDetails(Guid orderId)
     {
@@ -96,6 +100,7 @@ public class OrderController : ControllerBase
         return Ok(new { success = true, order });
     }
     
+    [Authorize(Roles = "Admin, Staff, Regular")]
     [HttpGet("user-orders")]
     public async Task<IActionResult> GetUserOrders()
     {
@@ -106,16 +111,16 @@ public class OrderController : ControllerBase
         return Ok(new { success = true, orders });
     }
     
+    [Authorize(Roles = "Admin, Staff")]
     [HttpGet("admin/all-orders")]
-    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllOrders()
     {
         var orders = await _orderService.GetAllOrdersAsync();
         return Ok(new { success = true, orders });
     }
     
+    [Authorize(Roles = "Admin, Staff")]
     [HttpGet("admin/orders-by-status/{status}")]
-    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetOrdersByStatus(OrderStatus status)
     {
         var orders = await _orderService.GetOrdersByStatusAsync(status);

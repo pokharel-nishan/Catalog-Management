@@ -40,7 +40,7 @@ public class UserController : ControllerBase
         }
     }
 
-    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     [HttpPost("createStaffUser")]
     public async Task<IActionResult> CreateStaffUser([FromBody] AddStaffUserDTO addStaffUserDTO)
     {
@@ -98,7 +98,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin, Staff, Regular")]
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
@@ -109,6 +109,7 @@ public class UserController : ControllerBase
         return Ok(new {success = true,  userDetails});
     }
 
+    [Authorize(Roles = "Admin, Staff, Regular")]
     [HttpGet("{userId}")]
     public async Task<IActionResult> GetParticularUser(Guid userId)
     {
@@ -125,7 +126,7 @@ public class UserController : ControllerBase
         return Ok(await _userService.GetUserDetailsByIdAsync(userId));
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpGet("all-users")]
     public async Task<IActionResult> GetAllUsers()
     {
@@ -148,7 +149,7 @@ public class UserController : ControllerBase
         return Ok(new { success = true, userDetails });       
     }
     
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpGet("all-staffs")]
     public async Task<IActionResult> GetAllStaffs()
     {

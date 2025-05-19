@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Backend;
 using Backend.Entities;
 using Backend.Repositories;
@@ -12,6 +13,7 @@ using System.Text;
 using Backend.Services.Email;
 using Microsoft.OpenApi.Models;
 using Backend.Services.Notifications;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.FileProviders;
 
@@ -125,8 +127,22 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"])),
+        RoleClaimType = ClaimTypes.Role
     };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("StaffOrAdmin", policy => policy.RequireRole("Admin", "Staff"));
+    options.AddPolicy("RegularOnly", policy => policy.RequireRole("Regular"));
+    options.AddPolicy("Registered", policy => policy.RequireRole("Regular", "Admin", "Staff"));
+
 });
 
 var app = builder.Build();

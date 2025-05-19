@@ -131,15 +131,21 @@ public class UserService : IUserService
 
     public async Task<string> GenerateTokenAsync(User user)
     {
+        var roles = await _userManager.GetRolesAsync(user);
         // Create claims
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(ClaimTypes.Name, user.UserName),
-            new Claim(ClaimTypes.Role, (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? "Regular")
-        };
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()) 
+        }.ToList();
 
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+        
         // Create token signature
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
 
