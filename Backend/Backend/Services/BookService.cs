@@ -13,6 +13,20 @@ namespace Backend.Services
             _bookRepository = bookRepository;
         }
 
+        private bool IsDiscountActive(Book book)
+        {
+            var now = DateTime.UtcNow;
+            return book.Discount > 0 && 
+                   (book.DiscountStartDate == null || book.DiscountStartDate <= now) && 
+                   (book.DiscountEndDate == null || book.DiscountEndDate >= now);
+        }
+        
+        // method to get available discount (0 if not active)
+        private decimal GetEffectiveDiscount(Book book)
+        {
+            return IsDiscountActive(book) ? book.Discount : 0;
+        }
+        
         public async Task<bool> AddBookAsync(AddBookDTO addBookDTO, Guid adminId)
         {
             try
@@ -127,8 +141,8 @@ namespace Backend.Services
                     Author = book.Author,
                     Genre = book.Genre,
                     Price = book.Price,
-                    Discount = book.Discount,
-                    IsOnSale = book.Discount != null && book.Discount > 0,
+                    Discount = GetEffectiveDiscount(book),
+                    IsOnSale = IsDiscountActive(book),
                     InStock = book.Stock > 0,
                     ImageURL = book.ImageURL,
                     Description = book.Description,
@@ -178,8 +192,8 @@ namespace Backend.Services
                     Format = book.Format,
                     Description = book.Description,
                     Price = book.Price,
-                    Discount = book.Discount,
-                    IsOnSale = book.Discount != null && book.Discount > 0,
+                    Discount = GetEffectiveDiscount(book),
+                    IsOnSale = IsDiscountActive(book),
                     Stock = book.Stock,
                     ImageURL = book.ImageURL,
                 };

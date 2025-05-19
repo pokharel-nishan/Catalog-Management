@@ -313,71 +313,89 @@ namespace Backend.Services
             }
         }
 
-        public async Task<Order> CreateOrderFromCartAsync(Guid userId)
+       public async Task<Order> CreateOrderFromCartAsync(Guid userId)
+    {
+        var cart = await _cartRepository.GetCartByUserIdAsync(userId);
+        if (cart == null || !(await _cartRepository.GetCartItemsAsync(cart.Id)).Any())
+            return null;
+
+        var cartItems = await _cartRepository.GetCartItemsAsync(cart.Id);
+        var now = DateTime.UtcNow;
+        
+        // Calculate total quantity and base price
+        int totalQuantity = cartItems.Sum(item => item.Quantity);
+        decimal subtotal = cartItems.Sum(item => item.Book.Price * item.Quantity);
+        
+        decimal totalPrice = cartItems.Sum(item => 
         {
-            var cart = await _cartRepository.GetCartByUserIdAsync(userId);
-            if (cart == null || !(await _cartRepository.GetCartItemsAsync(cart.Id)).Any())
-                return null;
-
-            var cartItems = await _cartRepository.GetCartItemsAsync(cart.Id);
+            var book = item.Book;
+            // Check if discount is currently active
+            bool isDiscountActive = book.Discount > 0 && 
+                                  (book.DiscountStartDate == null || book.DiscountStartDate <= now) && 
+                                  (book.DiscountEndDate == null || book.DiscountEndDate >= now);
             
-            // Calculate total quantity and base price
-            int totalQuantity = cartItems.Sum(item => item.Quantity);
-            decimal subtotal = cartItems.Sum(item => item.Book.Price * item.Quantity);
-            
-            decimal totalPrice = cartItems.Sum(item => 
-                item.Book.Price * (1 - item.Book.Discount) * item.Quantity);
-            
-            decimal discount = 0;
-            
-            // 5% discount for more than 5 books
-            if (totalQuantity >= 5)
-            {
-                discount += 0.05m;
-            }
-            
-            // 10% discount after 10 successful orders
-            var userOrders = await _orderRepository.GetUserOrdersAsync(userId);
-            int completedOrdersCount = userOrders.Count(o => o.Status == OrderStatus.Completed);
-            
-            if (completedOrdersCount >= 10)
-            {
-                discount += 0.10m;
-            }
-            
-            // Apply discount to total price
-            decimal discountedTotalPrice = totalPrice * (1 - discount);
-
-            var order = new Order
-            {
-                UserId = userId,
-                CartId = cart.Id,
-                OrderDate = DateTime.UtcNow,
-                TotalQuantity = totalQuantity,
-                SubTotal = subtotal,
-                TotalPrice = discountedTotalPrice,
-                Discount = discount,
-                Status = OrderStatus.Pending,
-                ClaimCode = Guid.NewGuid().ToString().Substring(0, 10).ToUpper()
-            };
-
-            var createdOrder = await _orderRepository.CreateOrderAsync(order);
-
-            foreach (var cartItem in cartItems)
-            {
-                var discountedPrice = cartItem.Book.Price * (1 - cartItem.Book.Discount);
-                await _orderBookRepository.AddOrderBookAsync(new OrderBook
-                {
-                    OrderId = createdOrder.OrderId,
-                    BookId = cartItem.BookId,
-                    BookQuantity = cartItem.Quantity,
-                    BookTotal = discountedPrice * cartItem.Quantity
-                });
-            }
-
-            await _cartRepository.ClearCartAsync(cart.Id);
-            return createdOrder;
+            decimal effectiveDiscount = isDiscountActive ? book.Discount : 0;
+            return item.Book.Price * (1 - effectiveDiscount) * item.Quantity;
+        });
+        
+        decimal additionalDiscount = 0;
+        
+        // 5% discount for more than 5 books
+        if (totalQuantity >= 5)
+        {
+            additionalDiscount += 0.05m;
         }
+        
+        // 10% discount after 10 successful orders
+        var userOrders = await _orderRepository.GetUserOrdersAsync(userId);
+        int completedOrdersCount = userOrders.Count(o => o.Status == OrderStatus.Completed);
+        
+        if (completedOrdersCount >= 10)
+        {
+            additionalDiscount += 0.10m;
+        }
+        
+        // Apply additional discount to total price
+        decimal discountedTotalPrice = totalPrice * (1 - additionalDiscount);
+
+        var order = new Order
+        {
+            UserId = userId,
+            CartId = cart.Id,
+            OrderDate = now,
+            TotalQuantity = totalQuantity,
+            SubTotal = subtotal,
+            TotalPrice = discountedTotalPrice,
+            Discount = additionalDiscount,
+            Status = OrderStatus.Pending,
+            ClaimCode = Guid.NewGuid().ToString().Substring(0, 10).ToUpper()
+        };
+
+        var createdOrder = await _orderRepository.CreateOrderAsync(order);
+
+        foreach (var cartItem in cartItems)
+        {
+            var book = cartItem.Book;
+            // Check if discount is currently active for this book
+            bool isDiscountActive = book.Discount > 0 && 
+                                  (book.DiscountStartDate == null || book.DiscountStartDate <= now) && 
+                                  (book.DiscountEndDate == null || book.DiscountEndDate >= now);
+            
+            decimal effectiveDiscount = isDiscountActive ? book.Discount : 0;
+            decimal discountedPrice = book.Price * (1 - effectiveDiscount);
+            
+            await _orderBookRepository.AddOrderBookAsync(new OrderBook
+            {
+                OrderId = createdOrder.OrderId,
+                BookId = cartItem.BookId,
+                BookQuantity = cartItem.Quantity,
+                BookTotal = discountedPrice * cartItem.Quantity
+            });
+        }
+
+        await _cartRepository.ClearCartAsync(cart.Id);
+        return createdOrder;
+    }
 
         public async Task<bool> ConfirmOrderAsync(Guid orderId, Guid userId)
         {
