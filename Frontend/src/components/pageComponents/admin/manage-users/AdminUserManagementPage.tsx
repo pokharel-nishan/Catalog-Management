@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, Edit, Trash, Eye, Calendar, ShoppingBag, Search, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Edit, Trash, Eye, Calendar, ShoppingBag, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -21,27 +21,27 @@ import {
   TableHeader,
   TableRow,
 } from '../../../ui/table';
+import apiClient from '../../../../api/config';
 
-// Enum for order status from your existing code
+// Enum for order status
 enum OrderStatus {
   Pending = 0,
   Cancelled = 1,
   Ongoing = 2,
-  Completed = 3
+  Completed = 3,
 }
 
-// Type definitions based on your User class and existing Order interface
+// Type definitions
 interface User {
-  id: string;
+  id?: string; // Made optional since not provided in /User/all-users
   firstName: string;
   lastName: string;
   email: string;
-  userName: string;
+  userName?: string; // Made optional
   address: string;
   dateJoined: string;
-  phoneNumber: string;
-  orderCount: number;
-  isActive: boolean;
+  phoneNumber?: string; // Made optional
+  orderCount?: number; // Made optional
 }
 
 interface OrderBook {
@@ -66,7 +66,7 @@ interface Order {
   orderBooks: OrderBook[];
 }
 
-// Helper function to get status label (reused from your existing code)
+// Helper functions
 const getStatusLabel = (status: OrderStatus): string => {
   switch (status) {
     case OrderStatus.Pending: return 'Pending';
@@ -77,372 +77,33 @@ const getStatusLabel = (status: OrderStatus): string => {
   }
 };
 
-// Helper function to get status badge variant (reused from your existing code)
 const getStatusBadgeVariant = (status: OrderStatus): BadgeProps['variant'] => {
-    switch (status) {
-      case OrderStatus.Pending: return 'default';
-      case OrderStatus.Cancelled: return 'destructive';
-      case OrderStatus.Ongoing: return 'secondary';
-      case OrderStatus.Completed: return 'default';
-      default: return 'secondary';
-    }
-  };
+  switch (status) {
+    case OrderStatus.Pending: return 'default';
+    case OrderStatus.Cancelled: return 'destructive';
+    case OrderStatus.Ongoing: return 'secondary';
+    case OrderStatus.Completed: return 'default';
+    default: return 'secondary';
+  }
+};
 
-// Format date as a readable string (reused from your existing code)
 const formatDate = (dateString: string): string => {
   return new Date(dateString).toLocaleString();
 };
 
-// Format currency (reused from your existing code)
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 };
 
-// Mock user data
-const mockUsers: User[] = [
-  {
-    id: '38765432-1234-5678-9012-345678901234',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    userName: 'johndoe',
-    address: '123 Main St, Anytown, USA',
-    dateJoined: '2025-01-15T10:30:00',
-    phoneNumber: '555-123-4567',
-    orderCount: 4,
-    isActive: true
-  },
-  {
-    id: '38765432-1234-5678-9012-345678901235',
-    firstName: 'Jane',
-    lastName: 'Smith',
-    email: 'jane.smith@example.com',
-    userName: 'janesmith',
-    address: '456 Oak Ave, Springfield, USA',
-    dateJoined: '2025-02-20T14:45:00',
-    phoneNumber: '555-234-5678',
-    orderCount: 2,
-    isActive: true
-  },
-  {
-    id: '38765432-1234-5678-9012-345678901236',
-    firstName: 'Robert',
-    lastName: 'Johnson',
-    email: 'robert.johnson@example.com',
-    userName: 'robertj',
-    address: '789 Pine Rd, Westville, USA',
-    dateJoined: '2025-03-10T09:15:00',
-    phoneNumber: '555-345-6789',
-    orderCount: 0,
-    isActive: true
-  },
-  {
-    id: '38765432-1234-5678-9012-345678901237',
-    firstName: 'Emily',
-    lastName: 'Davis',
-    email: 'emily.davis@example.com',
-    userName: 'emilyd',
-    address: '1010 Maple Dr, Eastland, USA',
-    dateJoined: '2025-03-25T16:20:00',
-    phoneNumber: '555-456-7890',
-    orderCount: 1,
-    isActive: false
-  },
-  {
-    id: '38765432-1234-5678-9012-345678901238',
-    firstName: 'Michael',
-    lastName: 'Wilson',
-    email: 'michael.wilson@example.com',
-    userName: 'michaelw',
-    address: '222 Cedar Ln, Northside, USA',
-    dateJoined: '2025-04-05T11:10:00',
-    phoneNumber: '555-567-8901',
-    orderCount: 3,
-    isActive: true
+// Simple hash function to generate a unique ID based on email
+const generateIdFromEmail = (email: string): string => {
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    const char = email.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
   }
-];
-
-// Mock orders (based on your existing mockOrders)
-const mockOrders: Order[] = [
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440000',
-    userId: '38765432-1234-5678-9012-345678901234', // John Doe
-    cartId: '98765432-1234-5678-9012-345678901234',
-    orderDate: '2025-05-01T14:30:00',
-    totalQuantity: 3,
-    totalPrice: 74.97,
-    discount: 5.00,
-    claimCode: 'ABX12345',
-    status: OrderStatus.Pending,
-    user: mockUsers[0],
-    orderBooks: [
-      {
-        bookId: '1',
-        title: 'The Great Adventure',
-        author: 'John Smith',
-        quantity: 1,
-        price: 19.99
-      },
-      {
-        bookId: '2',
-        title: 'The Secret Code',
-        author: 'Jane Doe',
-        quantity: 2,
-        price: 24.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440001',
-    userId: '38765432-1234-5678-9012-345678901234', // John Doe
-    cartId: '98765432-1234-5678-9012-345678901235',
-    orderDate: '2025-05-02T10:15:00',
-    totalQuantity: 1,
-    totalPrice: 29.99,
-    discount: 0,
-    claimCode: 'XYZ98765',
-    status: OrderStatus.Ongoing,
-    user: mockUsers[0],
-    orderBooks: [
-      {
-        bookId: '3',
-        title: 'Learn React',
-        author: 'Dev Expert',
-        quantity: 1,
-        price: 29.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440002',
-    userId: '38765432-1234-5678-9012-345678901234', // John Doe
-    cartId: '98765432-1234-5678-9012-345678901236',
-    orderDate: '2025-04-15T16:45:00',
-    totalQuantity: 2,
-    totalPrice: 49.98,
-    discount: 0,
-    claimCode: 'PQR45678',
-    status: OrderStatus.Completed,
-    user: mockUsers[0],
-    orderBooks: [
-      {
-        bookId: '1',
-        title: 'The Great Adventure',
-        author: 'John Smith',
-        quantity: 2,
-        price: 19.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440003',
-    userId: '38765432-1234-5678-9012-345678901234', // John Doe
-    cartId: '98765432-1234-5678-9012-345678901237',
-    orderDate: '2025-04-10T09:20:00',
-    totalQuantity: 1,
-    totalPrice: 24.99,
-    discount: 0,
-    claimCode: '',
-    status: OrderStatus.Cancelled,
-    user: mockUsers[0],
-    orderBooks: [
-      {
-        bookId: '2',
-        title: 'The Secret Code',
-        author: 'Jane Doe',
-        quantity: 1,
-        price: 24.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440004',
-    userId: '38765432-1234-5678-9012-345678901235', // Jane Smith
-    cartId: '98765432-1234-5678-9012-345678901238',
-    orderDate: '2025-04-20T13:40:00',
-    totalQuantity: 2,
-    totalPrice: 54.98,
-    discount: 0,
-    claimCode: 'STU78901',
-    status: OrderStatus.Completed,
-    user: mockUsers[1],
-    orderBooks: [
-      {
-        bookId: '4',
-        title: 'History of Art',
-        author: 'Sarah Williams',
-        quantity: 1,
-        price: 34.99
-      },
-      {
-        bookId: '5',
-        title: 'Cooking Basics',
-        author: 'Chef Gordon',
-        quantity: 1,
-        price: 19.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440005',
-    userId: '38765432-1234-5678-9012-345678901235', // Jane Smith
-    cartId: '98765432-1234-5678-9012-345678901239',
-    orderDate: '2025-05-05T09:10:00',
-    totalQuantity: 1,
-    totalPrice: 42.99,
-    discount: 0,
-    claimCode: 'VWX23456',
-    status: OrderStatus.Pending,
-    user: mockUsers[1],
-    orderBooks: [
-      {
-        bookId: '6',
-        title: 'Advanced Mathematics',
-        author: 'Professor Einstein',
-        quantity: 1,
-        price: 42.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440006',
-    userId: '38765432-1234-5678-9012-345678901237', // Emily Davis
-    cartId: '98765432-1234-5678-9012-345678901240',
-    orderDate: '2025-05-03T15:25:00',
-    totalQuantity: 1,
-    totalPrice: 27.99,
-    discount: 0,
-    claimCode: 'YZA34567',
-    status: OrderStatus.Cancelled,
-    user: mockUsers[3],
-    orderBooks: [
-      {
-        bookId: '7',
-        title: 'Garden Design',
-        author: 'Flora Green',
-        quantity: 1,
-        price: 27.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440007',
-    userId: '38765432-1234-5678-9012-345678901238', // Michael Wilson
-    cartId: '98765432-1234-5678-9012-345678901241',
-    orderDate: '2025-04-25T10:00:00',
-    totalQuantity: 3,
-    totalPrice: 89.97,
-    discount: 10.00,
-    claimCode: 'BCD45678',
-    status: OrderStatus.Completed,
-    user: mockUsers[4],
-    orderBooks: [
-      {
-        bookId: '8',
-        title: 'World History',
-        author: 'Professor Time',
-        quantity: 1,
-        price: 39.99
-      },
-      {
-        bookId: '9',
-        title: 'Space Exploration',
-        author: 'Neil Armstrong',
-        quantity: 2,
-        price: 24.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440008',
-    userId: '38765432-1234-5678-9012-345678901238', // Michael Wilson
-    cartId: '98765432-1234-5678-9012-345678901242',
-    orderDate: '2025-05-01T11:30:00',
-    totalQuantity: 1,
-    totalPrice: 19.99,
-    discount: 0,
-    claimCode: 'EFG56789',
-    status: OrderStatus.Ongoing,
-    user: mockUsers[4],
-    orderBooks: [
-      {
-        bookId: '10',
-        title: 'Programming Fundamentals',
-        author: 'Code Master',
-        quantity: 1,
-        price: 19.99
-      }
-    ]
-  },
-  {
-    orderId: '550e8400-e29b-41d4-a716-446655440009',
-    userId: '38765432-1234-5678-9012-345678901238', // Michael Wilson
-    cartId: '98765432-1234-5678-9012-345678901243',
-    orderDate: '2025-05-06T14:15:00',
-    totalQuantity: 1,
-    totalPrice: 29.99,
-    discount: 0,
-    claimCode: 'HIJ67890',
-    status: OrderStatus.Pending,
-    user: mockUsers[4],
-    orderBooks: [
-      {
-        bookId: '11',
-        title: 'Modern Architecture',
-        author: 'Builder Bob',
-        quantity: 1,
-        price: 29.99
-      }
-    ]
-  }
-];
-
-// Service interfaces
-interface MockServices {
-  getAllUsers: () => Promise<User[]>;
-  getUserById: (userId: string) => Promise<User | undefined>;
-  getUserOrders: (userId: string) => Promise<Order[]>;
-  updateUser: (user: User) => Promise<User>;
-  deleteUser: (userId: string) => Promise<void>;
-  toggleUserStatus: (userId: string, isActive: boolean) => Promise<User>;
-}
-
-// Mock services
-const mockServices: MockServices = {
-  getAllUsers: () => new Promise(resolve => {
-    setTimeout(() => resolve(mockUsers), 500);
-  }),
-  getUserById: (userId) => new Promise(resolve => {
-    const user = mockUsers.find(u => u.id === userId);
-    setTimeout(() => resolve(user), 300);
-  }),
-  getUserOrders: (userId) => new Promise(resolve => {
-    const userOrders = mockOrders.filter(order => order.userId === userId);
-    setTimeout(() => resolve(userOrders), 500);
-  }),
-  updateUser: (user) => new Promise(resolve => {
-    const index = mockUsers.findIndex(u => u.id === user.id);
-    if (index !== -1) {
-      mockUsers[index] = user;
-    }
-    setTimeout(() => resolve(user), 500);
-  }),
-  deleteUser: (userId) => new Promise(resolve => {
-    const index = mockUsers.findIndex(u => u.id === userId);
-    if (index !== -1) {
-      mockUsers.splice(index, 1);
-    }
-    setTimeout(() => resolve(), 500);
-  }),
-  toggleUserStatus: (userId, isActive) => new Promise(resolve => {
-    const index = mockUsers.findIndex(u => u.id === userId);
-    if (index !== -1) {
-      mockUsers[index].isActive = isActive;
-      resolve(mockUsers[index]);
-    } else {
-      resolve(mockUsers[0]); // Fallback
-    }
-  })
+  return Math.abs(hash).toString();
 };
 
 interface DeleteUserDialogProps {
@@ -494,23 +155,22 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   isOpen,
   onClose,
   onSave,
-  user
+  user,
 }) => {
   const [editedUser, setEditedUser] = useState<User | null>(null);
 
   useEffect(() => {
     if (user) {
-      setEditedUser({...user});
+      setEditedUser({ ...user });
     }
   }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editedUser) return;
-    
     const { name, value } = e.target;
     setEditedUser({
       ...editedUser,
-      [name]: value
+      [name]: value,
     });
   };
 
@@ -552,7 +212,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               />
             </div>
           </div>
-          
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">Email</label>
             <Input
@@ -564,28 +223,24 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               required
             />
           </div>
-          
           <div className="space-y-2">
             <label htmlFor="userName" className="text-sm font-medium">Username</label>
             <Input
               id="userName"
               name="userName"
-              value={editedUser.userName}
+              value={editedUser.userName || ''}
               onChange={handleInputChange}
-              required
             />
           </div>
-          
           <div className="space-y-2">
             <label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</label>
             <Input
               id="phoneNumber"
               name="phoneNumber"
-              value={editedUser.phoneNumber}
+              value={editedUser.phoneNumber || ''}
               onChange={handleInputChange}
             />
           </div>
-          
           <div className="space-y-2">
             <label htmlFor="address" className="text-sm font-medium">Address</label>
             <Input
@@ -595,7 +250,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
               onChange={handleInputChange}
             />
           </div>
-          
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
@@ -615,7 +269,6 @@ interface UserCardProps {
   onViewDetails: (user: User) => void;
   onEditUser: (user: User) => void;
   onDeleteUser: (userId: string, userName: string) => void;
-  onToggleStatus: (userId: string, isActive: boolean) => void;
 }
 
 const UserCard: React.FC<UserCardProps> = ({
@@ -623,10 +276,9 @@ const UserCard: React.FC<UserCardProps> = ({
   onViewDetails,
   onEditUser,
   onDeleteUser,
-  onToggleStatus
 }) => {
   const isRecentUser = new Date(user.dateJoined) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  
+
   return (
     <Card className={`w-full ${isRecentUser ? 'border-blue-200' : ''}`}>
       <CardContent className="pt-6">
@@ -634,12 +286,6 @@ const UserCard: React.FC<UserCardProps> = ({
           <div className="flex-1">
             <div className="flex items-center space-x-2">
               <h3 className="text-lg font-semibold">{user.firstName} {user.lastName}</h3>
-              <Badge 
-  variant={user.isActive ? 'default' : 'destructive'} 
-  className={`ml-2 ${user.isActive ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
->
-  {user.isActive ? 'Active' : 'Inactive'}
-</Badge>
               {isRecentUser && (
                 <Badge variant="outline" className="ml-2">New</Badge>
               )}
@@ -652,42 +298,24 @@ const UserCard: React.FC<UserCardProps> = ({
               </p>
               <p className="ml-4 text-sm">
                 <ShoppingBag className="h-4 w-4 inline mr-1" />
-                Orders: {user.orderCount}
+                Orders: {user.orderCount || 0}
               </p>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onViewDetails(user)}
-            >
+            <Button variant="outline" size="sm" onClick={() => onViewDetails(user)}>
               <Eye className="h-4 w-4 mr-1" />
               Details
             </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onEditUser(user)}
-            >
+            <Button variant="outline" size="sm" onClick={() => onEditUser(user)}>
               <Edit className="h-4 w-4 mr-1" />
               Edit
             </Button>
-            
-            <Button 
-              variant={user.isActive ? "destructive" : "default"}
-              size="sm" 
-              onClick={() => onToggleStatus(user.id, !user.isActive)}
-            >
-              {user.isActive ? 'Deactivate' : 'Activate'}
-            </Button>
-            
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
-              className="text-red-500" 
-              onClick={() => onDeleteUser(user.id, `${user.firstName} ${user.lastName}`)}
+              className="text-red-500"
+              onClick={() => onDeleteUser(user.id || generateIdFromEmail(user.email), `${user.firstName} ${user.lastName}`)}
             >
               <Trash className="h-4 w-4 mr-1" />
             </Button>
@@ -698,7 +326,6 @@ const UserCard: React.FC<UserCardProps> = ({
   );
 };
 
-// User details dialog component
 interface UserDetailsDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -710,7 +337,7 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
   isOpen,
   onClose,
   user,
-  orders
+  orders,
 }) => {
   if (!user) return null;
 
@@ -720,19 +347,9 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
         <DialogHeader>
           <DialogTitle>User Details</DialogTitle>
         </DialogHeader>
-        
         <div className="space-y-6">
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">User Profile</h3>
-              <Badge 
-  variant={user.isActive ? 'default' : 'destructive'} 
-  className={user.isActive ? 'bg-green-600 text-white' : ''}
->
-  {user.isActive ? 'Active' : 'Inactive'}
-</Badge>
-            </div>
-            
+            <h3 className="text-lg font-semibold">User Profile</h3>
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Full Name</h4>
@@ -740,7 +357,7 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Username</h4>
-                <p>{user.userName}</p>
+                <p>{user.userName || 'N/A'}</p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Email</h4>
@@ -748,7 +365,7 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Phone Number</h4>
-                <p>{user.phoneNumber}</p>
+                <p>{user.phoneNumber || 'N/A'}</p>
               </div>
               <div className="col-span-2">
                 <h4 className="text-sm font-medium text-gray-500">Address</h4>
@@ -760,11 +377,10 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Total Orders</h4>
-                <p>{user.orderCount}</p>
+                <p>{user.orderCount || 0}</p>
               </div>
             </div>
           </div>
-          
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Order History</h3>
             {orders.length > 0 ? (
@@ -786,11 +402,9 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
                       <TableCell>{order.totalQuantity}</TableCell>
                       <TableCell>{formatCurrency(order.totalPrice)}</TableCell>
                       <TableCell>
-                        <div className="flex items-center">
                         <Badge variant={getStatusBadgeVariant(order.status)}>
-  {order.status}
-</Badge>
-                        </div>
+                          {getStatusLabel(order.status)}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -801,7 +415,6 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
             )}
           </div>
         </div>
-        
         <div className="flex justify-end pt-4">
           <Button variant="outline" onClick={onClose}>
             Close
@@ -816,239 +429,234 @@ export const AdminUserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userOrders, setUserOrders] = useState<Order[]>([]);
-  
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<{ id: string, name: string } | null>(null);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch all users on component mount
   useEffect(() => {
     setIsLoading(true);
-    mockServices.getAllUsers()
-      .then(data => {
-        setUsers(data);
-        setFilteredUsers(data);
+    apiClient
+      .get('/User/all-users', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+      .then((response) => {
+        console.log('API Response:', response.data); // Debug log
+        if (response.data.success && response.data.userDetails && Array.isArray(response.data.userDetails.result)) {
+          const usersWithFallbacks = response.data.userDetails.result.map((user: any, index: number) => ({
+            id: user.id || generateIdFromEmail(user.email) || `temp-id-${index}`, // Fallback ID
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            email: user.email || '',
+            userName: user.userName || '', // Fallback if not provided
+            address: user.address || '',
+            dateJoined: user.dateJoined || '',
+            phoneNumber: user.phoneNumber || '', // Fallback if not provided
+            orderCount: user.orderCount || 0, // Fallback if not provided
+          }));
+          console.log('Mapped Users:', usersWithFallbacks); // Debug log
+          setUsers(usersWithFallbacks);
+          setFilteredUsers(usersWithFallbacks);
+        } else {
+          console.error('Unexpected response structure:', response.data);
+          toast.error('Unexpected response from server');
+        }
         setIsLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('API Error:', error);
         toast.error('Failed to fetch users');
         setIsLoading(false);
       });
   }, []);
 
-  // Filter users based on search term and status filter
+  // Filter users based on search term
   useEffect(() => {
     let filtered = users;
-    
-// Filter by status
-if (statusFilter === 'active') {
-    filtered = filtered.filter(user => user.isActive);
-  } else if (statusFilter === 'inactive') {
-    filtered = filtered.filter(user => !user.isActive);
-  }
-  
-  // Filter by search term
-  if (searchTerm) {
-    const term = searchTerm.toLowerCase();
-    filtered = filtered.filter(user => 
-      user.firstName.toLowerCase().includes(term) ||
-      user.lastName.toLowerCase().includes(term) ||
-      user.email.toLowerCase().includes(term) ||
-      user.userName.toLowerCase().includes(term)
-    );
-  }
-  
-  setFilteredUsers(filtered);
-}, [users, searchTerm, statusFilter]);
 
-// View user details
-const handleViewDetails = (user: User) => {
-  setSelectedUser(user);
-  setIsLoading(true);
-  
-  mockServices.getUserOrders(user.id)
-    .then(orders => {
-      setUserOrders(orders);
-      setIsDetailsDialogOpen(true);
-      setIsLoading(false);
-    })
-    .catch(() => {
-      toast.error('Failed to fetch user orders');
-      setIsLoading(false);
-    });
-};
-
-// Edit user
-const handleEditUser = (user: User) => {
-  setSelectedUser(user);
-  setIsEditDialogOpen(true);
-};
-
-const handleSaveUser = (updatedUser: User) => {
-  setIsLoading(true);
-  mockServices.updateUser(updatedUser)
-    .then(() => {
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === updatedUser.id ? updatedUser : user
-        )
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((user) =>
+        user.firstName.toLowerCase().includes(term) ||
+        user.lastName.toLowerCase().includes(term) ||
+        user.email.toLowerCase().includes(term) ||
+        (user.userName && user.userName.toLowerCase().includes(term))
       );
-      setIsEditDialogOpen(false);
-      toast.success('User updated successfully');
-      setIsLoading(false);
-    })
-    .catch(() => {
-      toast.error('Failed to update user');
-      setIsLoading(false);
-    });
-};
+    }
 
-// Delete user
-const handleDeleteClick = (userId: string, userName: string) => {
-  setUserToDelete({ id: userId, name: userName });
-  setIsDeleteDialogOpen(true);
-};
+    console.log('Filtered Users:', filtered); // Debug log
+    setFilteredUsers(filtered);
+  }, [users, searchTerm]);
 
-const handleConfirmDelete = () => {
-  if (!userToDelete) return;
-  
-  setIsLoading(true);
-  mockServices.deleteUser(userToDelete.id)
-    .then(() => {
-      setUsers(prevUsers => prevUsers.filter(user => user.id !== userToDelete.id));
-      setIsDeleteDialogOpen(false);
-      toast.success('User deleted successfully');
-      setIsLoading(false);
-    })
-    .catch(() => {
-      toast.error('Failed to delete user');
-      setIsLoading(false);
-    });
-};
+  // View user details
+  const handleViewDetails = (user: User) => {
+    setSelectedUser(user);
+    setIsLoading(true);
+    apiClient
+      .get(`/User/${user.id || generateIdFromEmail(user.email)}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+      .then((response) => {
+        console.log('User Details Response:', response.data); // Debug log
+        const detailedUser = response.data;
+        setSelectedUser({
+          id: detailedUser.id || user.id || generateIdFromEmail(user.email),
+          firstName: detailedUser.firstName || user.firstName,
+          lastName: detailedUser.lastName || user.lastName,
+          email: detailedUser.email || user.email,
+          userName: detailedUser.userName || user.userName || '',
+          address: detailedUser.address || user.address,
+          dateJoined: detailedUser.dateJoined || user.dateJoined,
+          phoneNumber: detailedUser.phoneNumber || user.phoneNumber || '',
+          orderCount: detailedUser.orderCount || user.orderCount || 0,
+        });
+        return apiClient.get(`/User/${user.id || generateIdFromEmail(user.email)}/orders`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+      })
+      .then((orderResponse) => {
+        console.log('User Orders Response:', orderResponse.data); // Debug log
+        setUserOrders(orderResponse.data);
+        setIsDetailsDialogOpen(true);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching details or orders:', error);
+        toast.error('Failed to fetch user details or orders');
+        setIsLoading(false);
+      });
+  };
 
-// Toggle user status (activate/deactivate)
-const handleToggleStatus = (userId: string, isActive: boolean) => {
-  setIsLoading(true);
-  mockServices.toggleUserStatus(userId, isActive)
-    .then(updatedUser => {
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId ? { ...user, isActive } : user
-        )
-      );
-      toast.success(`User ${isActive ? 'activated' : 'deactivated'} successfully`);
-      setIsLoading(false);
-    })
-    .catch(() => {
-      toast.error(`Failed to ${isActive ? 'activate' : 'deactivate'} user`);
-      setIsLoading(false);
-    });
-};
+  // Edit user
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditDialogOpen(true);
+  };
 
-return (
-  <div className="container mx-auto py-6 space-y-6">
-    <div className="flex justify-between items-center">
-      <div className="flex items-center space-x-2">
-        <Users className="h-6 w-6" />
-        <h1 className="text-2xl font-bold">User Management</h1>
-      </div>
-    </div>
-    
-    <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
-      <div className="relative w-full md:w-96">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-        <Input
-          placeholder="Search users..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-      
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="flex gap-2">
-          <Button
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            onClick={() => setStatusFilter('all')}
-          >
-            All Users
-          </Button>
-          <Button
-            variant={statusFilter === 'active' ? 'default' : 'outline'}
-            onClick={() => setStatusFilter('active')}
-          >
-            <CheckCircle className="h-4 w-4 mr-1" />
-            Active
-          </Button>
-          <Button
-            variant={statusFilter === 'inactive' ? 'default' : 'outline'}
-            onClick={() => setStatusFilter('inactive')}
-          >
-            <XCircle className="h-4 w-4 mr-1" />
-            Inactive
-          </Button>
+  const handleSaveUser = (updatedUser: User) => {
+    setIsLoading(true);
+    apiClient
+      .put(`/User/${updatedUser.id || generateIdFromEmail(updatedUser.email)}`, updatedUser, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+      .then((response) => {
+        setUsers((prevUsers) =>
+          prevUsers.map((user) =>
+            (user.id || generateIdFromEmail(user.email)) === (updatedUser.id || generateIdFromEmail(updatedUser.email))
+              ? { ...updatedUser, ...response.data }
+              : user
+          )
+        );
+        setIsEditDialogOpen(false);
+        toast.success('User updated successfully');
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error updating user:', error);
+        toast.error('Failed to update user');
+        setIsLoading(false);
+      });
+  };
+
+  // Delete user
+  const handleDeleteClick = (userId: string, userName: string) => {
+    setUserToDelete({ id: userId, name: userName });
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
+
+    setIsLoading(true);
+    apiClient
+      .delete(`/User/${userToDelete.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+      .then(() => {
+        setUsers((prevUsers) => prevUsers.filter((user) => (user.id || generateIdFromEmail(user.email)) !== userToDelete.id));
+        setIsDeleteDialogOpen(false);
+        toast.success('User deleted successfully');
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error deleting user:', error);
+        toast.error('Failed to delete user');
+        setIsLoading(false);
+      });
+  };
+
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <Users className="h-6 w-6" />
+          <h1 className="text-2xl font-bold">User Management</h1>
         </div>
       </div>
+      <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <span className="loading loading-spinner loading-lg"></span>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
+              <UserCard
+                key={user.id || generateIdFromEmail(user.email)}
+                user={user}
+                onViewDetails={handleViewDetails}
+                onEditUser={handleEditUser}
+                onDeleteUser={handleDeleteClick}
+              />
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No users found.</p>
+              {searchTerm && (
+                <p className="text-sm text-gray-400 mt-2">
+                  Try adjusting your search criteria.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      <UserDetailsDialog
+        isOpen={isDetailsDialogOpen}
+        onClose={() => setIsDetailsDialogOpen(false)}
+        user={selectedUser}
+        orders={userOrders}
+      />
+      <EditUserDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSave={handleSaveUser}
+        user={selectedUser}
+      />
+      <DeleteUserDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        userId={userToDelete?.id || ''}
+        userName={userToDelete?.name || ''}
+      />
     </div>
-    
-    {isLoading ? (
-      <div className="flex justify-center items-center py-12">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    ) : (
-      <div className="grid gap-4">
-        {filteredUsers.length > 0 ? (
-          filteredUsers.map((user) => (
-            <UserCard
-              key={user.id}
-              user={user}
-              onViewDetails={handleViewDetails}
-              onEditUser={handleEditUser}
-              onDeleteUser={handleDeleteClick}
-              onToggleStatus={handleToggleStatus}
-            />
-          ))
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No users found.</p>
-            {searchTerm && (
-              <p className="text-sm text-gray-400 mt-2">
-                Try adjusting your search criteria.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-    )}
-    
-    <UserDetailsDialog
-      isOpen={isDetailsDialogOpen}
-      onClose={() => setIsDetailsDialogOpen(false)}
-      user={selectedUser}
-      orders={userOrders}
-    />
-    
-    <EditUserDialog
-      isOpen={isEditDialogOpen}
-      onClose={() => setIsEditDialogOpen(false)}
-      onSave={handleSaveUser}
-      user={selectedUser}
-    />
-    
-    <DeleteUserDialog
-      isOpen={isDeleteDialogOpen}
-      onClose={() => setIsDeleteDialogOpen(false)}
-      onConfirm={handleConfirmDelete}
-      userId={userToDelete?.id || ''}
-      userName={userToDelete?.name || ''}
-    />
-  </div>
-);
+  );
 };
 
 export default AdminUserManagement;

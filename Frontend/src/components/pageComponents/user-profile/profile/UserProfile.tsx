@@ -1,56 +1,82 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react';
 import { Input } from '../../../ui/input';
 import { Button } from '../../../ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle} from '../../../ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../ui/alert-dialog';
 import { toast } from 'react-toastify';
+import apiClient from '../../../../api/config';
 
 const UserProfilePage = () => {
   const [originalPersonalInfo, setOriginalPersonalInfo] = useState({
-    firstName: 'James',
-    lastName: 'Shrestha',
-    email: 'James@Gmail.Com',
-    dateOfBirth: '2002/02/02',
-    phoneNumber: '977 9812345678'
+    firstName: '',
+    lastName: '',
+    email: '',
   });
 
   const [originalAddressInfo, setOriginalAddressInfo] = useState({
-    country: 'Nepal',
-    addressLine1: 'Kathmandu',
-    addressLine2: 'Balkumari',
-    stateProvinceRegion: 'Bagmati',
-    streetAddress: 'Central Road',
-    postalCode: '44600'
+    address: '',
   });
 
-  const [personalInfo, setPersonalInfo] = useState({...originalPersonalInfo});
-  const [addressInfo, setAddressInfo] = useState({...originalAddressInfo});
+  const [personalInfo, setPersonalInfo] = useState({ ...originalPersonalInfo });
+  const [addressInfo, setAddressInfo] = useState({ ...originalAddressInfo });
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch user details on component mount
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const response = await apiClient.get('/User/me', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        const userData = response.data.userDetails;
+        const fetchedPersonalInfo = {
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          email: userData.email || '',
+        };
+        const fetchedAddressInfo = {
+          address: userData.address || '',
+        };
+        setOriginalPersonalInfo(fetchedPersonalInfo);
+        setOriginalAddressInfo(fetchedAddressInfo);
+        setPersonalInfo(fetchedPersonalInfo);
+        setAddressInfo(fetchedAddressInfo);
+      } catch (error) {
+        toast.error('Failed to fetch user details. Please try again.');
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUserDetails();
+  }, []);
 
   const handlePersonalInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPersonalInfo(prev => ({ ...prev, [name]: value }));
+    setPersonalInfo((prev) => ({ ...prev, [name]: value }));
   };
   
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setAddressInfo(prev => ({ ...prev, [name]: value }));
+    setAddressInfo((prev) => ({ ...prev, [name]: value }));
   };
   
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPasswordForm(prev => ({ ...prev, [name]: value }));
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const isPersonalInfoChanged = () => {
     return JSON.stringify(personalInfo) !== JSON.stringify(originalPersonalInfo);
   };
@@ -59,52 +85,77 @@ const UserProfilePage = () => {
     return JSON.stringify(addressInfo) !== JSON.stringify(originalAddressInfo);
   };
 
-  const handlePersonalInfoSubmit = () => {
+  const handlePersonalInfoSubmit = async () => {
     if (!isPersonalInfoChanged()) {
-      toast.info("No changes made to personal information. Please update fields and save changes.");
+      toast.info('No changes made to personal information.');
       return;
     }
-    
-    // Simulating API update
-    setOriginalPersonalInfo({...personalInfo});
-    toast.success("Personal information updated successfully!");
+
+    try {
+      await apiClient.put('/user/profile-update', personalInfo, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      setOriginalPersonalInfo({ ...personalInfo });
+      toast.success('Personal information updated successfully!');
+    } catch (error) {
+      toast.error('Failed to update personal information.');
+      console.error(error);
+    }
   };
 
-  const handleAddressSubmit = () => {
+  const handleAddressSubmit = async () => {
     if (!isAddressInfoChanged()) {
-      toast.info("No changes made to address. Please update fields and save changes.");
+      toast.info('No changes made to address.');
       return;
     }
-    
-    // Simulating API update
-    setOriginalAddressInfo({...addressInfo});
-    toast.success("Address information updated successfully!");
+
+    try {
+      await apiClient.put('/user/profile-update', addressInfo, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      setOriginalAddressInfo({ ...addressInfo });
+      toast.success('Address updated successfully!');
+    } catch (error) {
+      toast.error('Failed to update address.');
+      console.error(error);
+    }
   };
 
-  const handlePasswordSubmit = () => {
-    // Password validation
+  const handlePasswordSubmit = async () => {
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      toast.error("Please fill in all password fields");
+      toast.error('Please fill in all password fields');
       return;
     }
-    
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error("New password and confirmation do not match");
+      toast.error('New password and confirmation do not match');
       return;
     }
 
     if (passwordForm.newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters long");
+      toast.error('Password must be at least 8 characters long');
       return;
     }
 
-    // Success case
-    setIsSuccessDialogOpen(true);
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    // Toast will be shown when dialog is closed
+    try {
+      await apiClient.put(
+        '/user/profile-update',
+        {
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }
+      );
+      setIsSuccessDialogOpen(true);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      toast.error('Failed to update password.');
+      console.error(error);
+    }
   };
 
-  // Profile image component with cartoon image similar to the screenshot
   const ProfileImage = () => (
     <div className="w-16 h-16 rounded-full overflow-hidden bg-purple-200">
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -117,35 +168,34 @@ const UserProfilePage = () => {
     </div>
   );
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="max-w-full mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">My details</h1>
-      
+
       {/* Personal Information Section */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-4">Personal information</h2>
         <div className="mb-6 bg-white p-6 rounded-md shadow-sm">
           <div className="flex flex-col md:flex-row gap-6 mb-6">
-            {/* Left Column - Lorem ipsum text */}
             <div className="w-full md:w-1/3 text-sm text-gray-500">
-            Update your personal details including your name, date of birth, and contact number. 
-            Keeping this information current helps us serve you better.
+              Update your personal details including your name and email.
             </div>
-            
-            {/* Right Column - Profile and Form */}
             <div className="w-full md:w-2/3">
-              {/* Profile Image and Name */}
               <div className="flex items-center mb-6">
                 <div className="relative mr-4">
                   <ProfileImage />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">{personalInfo.firstName} {personalInfo.lastName}</h3>
+                  <h3 className="text-xl font-bold">
+                    {personalInfo.firstName} {personalInfo.lastName}
+                  </h3>
                   <p className="text-gray-500">{personalInfo.email}</p>
                 </div>
               </div>
-              
-              {/* Personal Info Form */}
               <div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>
@@ -157,32 +207,24 @@ const UserProfilePage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Second name</label>
-                    <Input 
+                    <label className="block text-sm font-medium mb-1">Last name</label>
+                    <Input
                       name="lastName"
                       value={personalInfo.lastName}
                       onChange={handlePersonalInfoChange}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Date of birth</label>
-                    <Input 
-                      name="dateOfBirth"
-                      value={personalInfo.dateOfBirth}
-                      onChange={handlePersonalInfoChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Phone number</label>
-                    <Input 
-                      name="phoneNumber"
-                      value={personalInfo.phoneNumber}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-1">Email</label>
+                    <Input
+                      name="email"
+                      value={personalInfo.email}
                       onChange={handlePersonalInfoChange}
                     />
                   </div>
                 </div>
                 <Button
-                  onClick={handlePersonalInfoSubmit} 
+                  onClick={handlePersonalInfoSubmit}
                   className="bg-teal-500 hover:bg-teal-600"
                 >
                   Save
@@ -192,73 +234,29 @@ const UserProfilePage = () => {
           </div>
         </div>
       </section>
-      
+
       {/* Address Section */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-4">Address</h2>
         <div className="mb-6 bg-white p-6 rounded-md shadow-sm">
           <div className="flex flex-col md:flex-row gap-6">
-            {/* Left Column - Lorem ipsum text */}
             <div className="w-full md:w-1/3 text-sm text-gray-500">
-            Provide or update your current address to ensure accurate delivery and location-based services. 
-            Make sure all fields are correctly filled out.
+              Update your current address for accurate delivery.
             </div>
-            
-            {/* Right Column - Address Form */}
             <div className="w-full md:w-2/3">
               <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 gap-4 mb-6">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Country</label>
-                    <Input 
-                      name="country"
-                      value={addressInfo.country}
-                      onChange={handleAddressChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Address line 1</label>
-                    <Input 
-                      name="addressLine1"
-                      value={addressInfo.addressLine1}
-                      onChange={handleAddressChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Address line 2</label>
-                    <Input 
-                      name="addressLine2"
-                      value={addressInfo.addressLine2}
-                      onChange={handleAddressChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">State/Province/Region</label>
-                    <Input 
-                      name="stateProvinceRegion"
-                      value={addressInfo.stateProvinceRegion}
-                      onChange={handleAddressChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Street address</label>
-                    <Input 
-                      name="streetAddress"
-                      value={addressInfo.streetAddress}
-                      onChange={handleAddressChange}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Postal code</label>
-                    <Input 
-                      name="postalCode"
-                      value={addressInfo.postalCode}
+                    <label className="block text-sm font-medium mb-1">Address</label>
+                    <Input
+                      name="address"
+                      value={addressInfo.address}
                       onChange={handleAddressChange}
                     />
                   </div>
                 </div>
-                <Button 
-                  onClick={handleAddressSubmit} 
+                <Button
+                  onClick={handleAddressSubmit}
                   className="bg-teal-500 hover:bg-teal-600"
                 >
                   Save
@@ -268,28 +266,23 @@ const UserProfilePage = () => {
           </div>
         </div>
       </section>
-      
+
       {/* Password Section */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-4">Password</h2>
         <div className="mb-6 bg-white p-6 rounded-md shadow-sm">
           <div className="flex flex-col md:flex-row gap-6">
-            {/* Left Column - Lorem ipsum text */}
             <div className="w-full md:w-1/3 text-sm text-gray-500">
-            Change your account password here. For security, choose a strong password and avoid reusing old ones. 
-            Remember to save your changes once you're done.
+              Change your account password here. Choose a strong password.
             </div>
-            
-            {/* Right Column - Password Form */}
             <div className="w-full md:w-2/3">
               <div className="space-y-6">
-                {/* Current Password */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Current password</label>
                   <div className="relative">
                     <Input
                       name="currentPassword"
-                      type={showCurrentPassword ? "text" : "password"}
+                      type={showCurrentPassword ? 'text' : 'password'}
                       value={passwordForm.currentPassword}
                       onChange={handlePasswordChange}
                       className="pl-10 pr-10"
@@ -300,20 +293,18 @@ const UserProfilePage = () => {
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2"
-                      onClick={() => setShowCurrentPassword(prev => !prev)}
+                      onClick={() => setShowCurrentPassword((prev) => !prev)}
                     >
                       {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
-
-                {/* New Password */}
                 <div>
                   <label className="block text-sm font-medium mb-1">New Password</label>
                   <div className="relative">
                     <Input
                       name="newPassword"
-                      type={showNewPassword ? "text" : "password"}
+                      type={showNewPassword ? 'text' : 'password'}
                       value={passwordForm.newPassword}
                       onChange={handlePasswordChange}
                       className="pl-10 pr-10"
@@ -324,20 +315,18 @@ const UserProfilePage = () => {
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2"
-                      onClick={() => setShowNewPassword(prev => !prev)}
+                      onClick={() => setShowNewPassword((prev) => !prev)}
                     >
                       {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
-
-                {/* Confirm Password */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Confirm Password</label>
                   <div className="relative">
                     <Input
                       name="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
+                      type={showConfirmPassword ? 'text' : 'password'}
                       value={passwordForm.confirmPassword}
                       onChange={handlePasswordChange}
                       className="pl-10 pr-10"
@@ -348,7 +337,7 @@ const UserProfilePage = () => {
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2"
-                      onClick={() => setShowConfirmPassword(prev => !prev)}
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
@@ -356,8 +345,8 @@ const UserProfilePage = () => {
                 </div>
               </div>
               <div className="mt-6">
-                <Button 
-                  onClick={handlePasswordSubmit} 
+                <Button
+                  onClick={handlePasswordSubmit}
                   className="bg-teal-500 hover:bg-teal-600"
                 >
                   Save
@@ -367,14 +356,14 @@ const UserProfilePage = () => {
           </div>
         </div>
       </section>
-      
+
       {/* Success Dialog */}
-      <AlertDialog 
-        open={isSuccessDialogOpen} 
+      <AlertDialog
+        open={isSuccessDialogOpen}
         onOpenChange={(open) => {
           setIsSuccessDialogOpen(open);
           if (!open) {
-            toast.success("Password changed successfully!");
+            toast.success('Password changed successfully!');
           }
         }}
       >
