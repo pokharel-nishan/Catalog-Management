@@ -19,6 +19,8 @@ namespace Backend.Repositories
         // Delete
         public Task<bool> DeleteBookAsync (Guid bookId);
         
+        Task<Dictionary<Guid, int>> GetBookSalesCountsAsync();
+
         
         Task<(List<Book> books, int totalCount)> GetFilteredBooksAsync(
             int skip,

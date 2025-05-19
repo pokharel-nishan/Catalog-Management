@@ -1,4 +1,5 @@
 ﻿using Backend.DTOs.Admin.Book;
+using Backend.DTOs.User;
 using Backend.Entities;
 using Backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -224,6 +225,82 @@ namespace Backend.Services
             };
 
             return filterOptions;
+        }
+        
+        public async Task<FeaturedBooksDTO> GetFeaturedBooksAsync()
+        {
+            var threeMonthsAgo = DateTime.UtcNow.AddMonths(-3);
+            var threeMonthsFromNow = DateTime.UtcNow.AddMonths(3);
+            var now = DateTime.UtcNow;
+
+            // Get all books and sales data
+            var allBooks = await _bookRepository.GetAllBooksAsync();
+            var salesCounts = await _bookRepository.GetBookSalesCountsAsync();
+            var maxSales = salesCounts.Values.DefaultIfEmpty(0).Max();
+            var bestSellerThreshold = maxSales * 0.8; // Top 20%
+
+            var response = new FeaturedBooksDTO();
+
+            // New Arrivals (added to system in last 3 months)
+            response.NewArrivals = allBooks
+                .Where(b => b.ArrivalDate.HasValue && b.ArrivalDate.Value >= threeMonthsAgo)
+                .OrderByDescending(b => b.ArrivalDate)
+                .Take(6)
+                .Select(b => MapToBookCategoryDTO(b, now))
+                .ToList();
+
+            // New Releases (published in last 3 months)
+            response.NewReleases = allBooks
+                .Where(b => b.PublicationDate >= threeMonthsAgo)
+                .OrderByDescending(b => b.PublicationDate)
+                .Take(6)
+                .Select(b => MapToBookCategoryDTO(b, now))
+                .ToList();
+
+            // Top Sales (currently discounted)
+            response.TopSales = allBooks
+                .Where(b => b.Discount > 0 && (b.DiscountEndDate == null || b.DiscountEndDate >= now))
+                .OrderByDescending(b => b.Discount)
+                .Take(6)
+                .Select(b => MapToBookCategoryDTO(b, now))
+                .ToList();
+
+            // Best Sellers
+            response.BestSellers = allBooks
+                .Where(b => salesCounts.TryGetValue(b.BookId, out var count) && count >= bestSellerThreshold)
+                .OrderByDescending(b => salesCounts[b.BookId])
+                .Take(6)
+                .Select(b => MapToBookCategoryDTO(b, now))
+                .ToList();
+
+            // Coming Soon (arrival in next 3 months)
+            response.ComingSoon = allBooks
+                .Where(b => b.ArrivalDate.HasValue && b.ArrivalDate.Value > now && b.ArrivalDate.Value <= threeMonthsFromNow)
+                .OrderBy(b => b.ArrivalDate)
+                .Take(6)
+                .Select(b => MapToBookCategoryDTO(b, now))
+                .ToList();
+
+            return response;
+        }
+
+        private BookCategoryDTO MapToBookCategoryDTO(Book book, DateTime now)
+        {
+            return new BookCategoryDTO
+            {
+                BookId = book.BookId,
+                Title = book.Title,
+                Author = book.Author,
+                Genre = book.Genre,
+                Price = book.Price,
+                Discount = book.Discount > 0 && 
+                         (book.DiscountStartDate == null || book.DiscountStartDate <= now) && 
+                         (book.DiscountEndDate == null || book.DiscountEndDate >= now)
+                         ? book.Discount : 0,
+                ImageURL = book.ImageURL,
+                InStock = book.Stock > 0,
+                OnSaleUntil = book.DiscountEndDate
+            };
         }
     }
 }

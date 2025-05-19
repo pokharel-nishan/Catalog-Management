@@ -1,4 +1,5 @@
 ﻿using Backend.DTOs.Admin.Book;
+using Backend.DTOs.User;
 using Backend.Entities;
 using Backend.Repositories;
 
@@ -21,7 +22,6 @@ namespace Backend.Services
         Task<BookDetailDTO> GetBookDetailsByIdAsync(Guid bookId);
 
         Task<BookFilterDetailsDto> GetBookFilterDetailsAsync();
-
-
+        Task<FeaturedBooksDTO> GetFeaturedBooksAsync();
     }
 }

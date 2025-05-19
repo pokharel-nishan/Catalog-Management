@@ -4,6 +4,7 @@ using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Backend.DTOs.User;
 
 namespace Backend.Controllers;
 
@@ -168,6 +169,20 @@ public class BookController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, $"An error occurred while retrieving filter options: {ex.Message}");
+        }
+    }
+    
+    [HttpGet("featured")]
+    public async Task<ActionResult<FeaturedBooksDTO>> GetFeaturedBooks()
+    {
+        try
+        {
+            var result = await _bookService.GetFeaturedBooksAsync();
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"An error occurred while retrieving featured books: {ex.Message}");
         }
     }
 }
