@@ -34,6 +34,9 @@ namespace Backend.Services
                     Price = addBookDTO.Price,
                     Stock = addBookDTO.Stock,
                     Discount = addBookDTO.Discount,
+                    DiscountStartDate =addBookDTO.DiscountStartDate,
+                    DiscountEndDate =addBookDTO.DiscountEndDate,
+                    ArrivalDate = addBookDTO.ArrivalDate
                 };
 
                 return await _bookRepository.AddBookAsync(book);

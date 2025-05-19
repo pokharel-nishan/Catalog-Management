@@ -323,6 +323,8 @@ namespace Backend.Services
             
             // Calculate total quantity and base price
             int totalQuantity = cartItems.Sum(item => item.Quantity);
+            decimal subtotal = cartItems.Sum(item => item.Book.Price * item.Quantity);
+            
             decimal totalPrice = cartItems.Sum(item => 
                 item.Book.Price * (1 - item.Book.Discount) * item.Quantity);
             
@@ -352,6 +354,7 @@ namespace Backend.Services
                 CartId = cart.Id,
                 OrderDate = DateTime.UtcNow,
                 TotalQuantity = totalQuantity,
+                SubTotal = subtotal,
                 TotalPrice = discountedTotalPrice,
                 Discount = discount,
                 Status = OrderStatus.Pending,
@@ -433,7 +436,7 @@ namespace Backend.Services
                 Quantity = ob.BookQuantity,
                 UnitPrice = ob.Book.Price,
                 Discount = ob.Book.Discount, 
-                Subtotal = ob.BookTotal
+                Subtotal = ob.BookTotal,
             }).ToList();
 
             return new OrderDTO
@@ -442,7 +445,8 @@ namespace Backend.Services
                 OrderDate = order.OrderDate,
                 Status = order.Status.ToString(),
                 TotalPrice = order.TotalPrice,
-                 Discount= order.Discount, 
+                SubTotal = order.SubTotal,
+                Discount= order.Discount, 
                 ClaimCode = order.ClaimCode,
                 UserId = order.UserId,
                 Items = items
@@ -458,6 +462,7 @@ namespace Backend.Services
                 OrderDate = o.OrderDate,
                 Status = o.Status.ToString(),
                 TotalPrice = o.TotalPrice,
+                SubTotal = o.SubTotal,
                 Items = o.OrderBooks.Select(ob => new OrderItemDTO
                 {
                     BookId = ob.BookId,
@@ -490,6 +495,7 @@ namespace Backend.Services
                 Status = order.Status.ToString(),
                 TotalPrice = order.TotalPrice,
                 ClaimCode = order.ClaimCode,
+                SubTotal = order.SubTotal,
                 Items = order.OrderBooks.Select(ob => new OrderItemDTO
                 {
                     BookId = ob.BookId,

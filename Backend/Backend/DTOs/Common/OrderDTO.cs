@@ -7,6 +7,8 @@ public class OrderDTO
     public DateTime OrderDate { get; set; }
     public string Status { get; set; }
     public decimal TotalPrice { get; set; }
+    
+    public decimal SubTotal { get; set; }
     public string ClaimCode { get; set; }
     
     public decimal? Discount { get; set; }

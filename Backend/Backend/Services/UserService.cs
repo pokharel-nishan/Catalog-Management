@@ -101,6 +101,7 @@ public class UserService : IUserService
 
         return new()
         {
+            UserId = user.Id,
             Email = user.Email,
             Roles = roles,
             Address = user.Address,
@@ -162,6 +163,7 @@ public class UserService : IUserService
         var users = await _userRepository.getAllRegularUsersAsync();
         return users.Select(user => new UserDetailsDTO
         {
+            UserId = user.Id,
             FirstName = user.FirstName,
             LastName = user.LastName,
             Address = user.Address,
