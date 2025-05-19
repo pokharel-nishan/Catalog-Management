@@ -110,7 +110,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("{userId}")]
-    public async Task<IActionResult> GetCurrentUser(Guid userId)
+    public async Task<IActionResult> GetParticularUser(Guid userId)
     {
         var adminId = GetUserId();
         if (adminId == null) return Unauthorized();
