@@ -39,14 +39,30 @@ public class ReviewRepository: IReviewRepository
                 ob.Order.Status == OrderStatus.Completed);
     }
     
-    public async Task<IEnumerable<Review>> GetReviewsByBookIdAsync(Guid bookId)
+    public async Task<List<Review>> GetReviewsByBookIdAsync(Guid bookId)
+{
+    var reviews = await _context.Reviews
+        .Include(r => r.User)
+        .Where(r => r.BookId == bookId)
+        .ToListAsync();
+
+    // Applying manual bubble sort to sort by DateAdded in descending order
+    for (int i = 0; i < reviews.Count - 1; i++)
     {
-        return await _context.Reviews
-            .Include(r => r.User)
-            .Where(r => r.BookId == bookId)
-            .OrderByDescending(r => r.DateAdded)
-            .ToListAsync();
+        for (int j = 0; j < reviews.Count - i - 1; j++)
+        {
+            if (reviews[j].DateAdded < reviews[j + 1].DateAdded)
+            {
+                var temp = reviews[j];
+                reviews[j] = reviews[j + 1];
+                reviews[j + 1] = temp;
+            }
+        }
     }
+
+    return reviews;
+}
+
     
     public async Task<Review> GetReviewByIdAsync(Guid reviewId)
     {
