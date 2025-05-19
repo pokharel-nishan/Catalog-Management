@@ -73,7 +73,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout();
         setItems([]);
       } else {
-        toast.error("Failed to load cart items!");
         setItems([]);
       }
     }

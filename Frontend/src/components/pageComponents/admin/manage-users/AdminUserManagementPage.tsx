@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '../../../ui/table';
 import apiClient from '../../../../api/config';
+import { useAuth } from '../../../../context/AuthContext';
 
 // Enum for order status
 enum OrderStatus {
@@ -426,6 +427,7 @@ const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
 };
 
 export const AdminUserManagement: React.FC = () => {
+  const { user, isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -436,6 +438,40 @@ export const AdminUserManagement: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+
+  if (!user) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">
+            Authentication Required
+          </h2>
+          <p className="text-gray-500">
+            Please login to access the user management system.
+          </p>
+          <Button className="mt-4" onClick={() => (window.location.href = "/login")}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">
+            Access Denied
+          </h2>
+          <p className="text-gray-500">
+            Only admins can access the user management system.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch all users on component mount
   useEffect(() => {

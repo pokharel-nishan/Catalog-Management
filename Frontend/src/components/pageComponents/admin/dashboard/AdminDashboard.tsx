@@ -24,6 +24,8 @@ import {
 import apiClient from '../../../../api/config'; // Adjust path as needed
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Button } from '../../../ui/button';
+import { useAuth } from '../../../../context/AuthContext';
 
 // Define types based on backend API responses
 interface Book {
@@ -99,6 +101,7 @@ interface StatusData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function DashboardAnalytics() {
+    const { user, isAdmin } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -113,6 +116,39 @@ export default function DashboardAnalytics() {
   const [totalActiveAnnouncements, setTotalActiveAnnouncements] = useState(0);
   const [totalPublishedAnnouncements, setTotalPublishedAnnouncements] = useState(0);
 
+if (!user) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">
+            Authentication Required
+          </h2>
+          <p className="text-gray-500">
+            Please login to access the admin dashboard.
+          </p>
+          <Button className="mt-4" onClick={() => (window.location.href = "/login")}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">
+            Access Denied
+          </h2>
+          <p className="text-gray-500">
+            Only admins can access the admin dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
   // Fetch all data on component mount
   useEffect(() => {
     const fetchData = async () => {

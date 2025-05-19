@@ -11,6 +11,7 @@ import { Input } from '../../../ui/input';
 import { Button } from '../../../ui/button';
 import { Card, CardContent } from '../../../ui/card';
 import apiClient from '../../../../api/config';
+import { useAuth } from '../../../../context/AuthContext';
 
 // Updated Staff interface to match backend API structure
 interface Staff {
@@ -29,6 +30,7 @@ interface DialogState {
 }
 
 export const AdminStaffManagement: React.FC = () => {
+  const { user, isAdmin } = useAuth();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [filteredStaff, setFilteredStaff] = useState<Staff[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +39,39 @@ export const AdminStaffManagement: React.FC = () => {
     mode: 'view',
     selectedStaff: null,
   });
+
+  if (!user) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">
+            Authentication Required
+          </h2>
+          <p className="text-gray-500">
+            Please login to access the staff management system.
+          </p>
+          <Button className="mt-4" onClick={() => (window.location.href = "/login")}>
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">
+            Access Denied
+          </h2>
+          <p className="text-gray-500">
+            Only admins can access the staff management system.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch all staff on component mount
   useEffect(() => {
