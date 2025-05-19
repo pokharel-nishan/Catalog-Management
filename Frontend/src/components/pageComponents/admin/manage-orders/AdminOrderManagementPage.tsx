@@ -22,7 +22,7 @@ import {
 } from '../../../ui/table';
 import apiClient from '../../../../api/config';
 
-// Enum for order status (aligned with backend API response)
+// Enum for order status (aligned with API string values)
 enum OrderStatus {
   Pending = 'Pending',
   Cancelled = 'Cancelled',
@@ -43,15 +43,18 @@ interface OrderBook {
   author: string;
   quantity: number;
   price: number;
+  discount?: number;
+  subtotal: number;
 }
 
 interface Order {
   orderId: string;
   userId: string;
-  cartId: string;
+  cartId?: string;
   orderDate: string;
   totalQuantity: number;
   totalPrice: number;
+  subTotal: number;
   discount: number;
   claimCode: string;
   status: OrderStatus;
@@ -82,41 +85,50 @@ const getStatusBadgeVariant = (status: OrderStatus): string => {
 
 // Format date as a readable string
 const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleString();
+  return new Date(dateString).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
-// Format currency
+// Format currency in INR
 const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  return `Rs.${amount.toFixed(2)}`;
 };
 
 interface ClaimDialogProps {
   isOpen: boolean;
   onClose: () => void;
   orderId: string;
-  claimCode: string;
-  onClaimOrder: (orderId: string, code: string) => void;
+  claimCode: string; // Add claimCode prop for validation
+  onClaimOrder: (orderId: string, enteredClaimCode: string) => void;
 }
 
 const ClaimDialog: React.FC<ClaimDialogProps> = ({ isOpen, onClose, orderId, claimCode, onClaimOrder }) => {
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (isOpen) {
-      setCode('');
-      setError('');
-    }
-  }, [isOpen]);
+  const [enteredClaimCode, setEnteredClaimCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code === claimCode) {
-      onClaimOrder(orderId, code);
-      onClose();
-    } else {
-      setError('Invalid claim code. Please try again.');
+    setError(null);
+
+    if (!enteredClaimCode.trim()) {
+      setError('Please enter the claim code.');
+      return;
     }
+
+    // Client-side validation (optional, as backend should validate)
+    if (enteredClaimCode.trim() !== claimCode) {
+      setError('Invalid claim code. Please try again.');
+      return;
+    }
+
+    onClaimOrder(orderId, enteredClaimCode);
+    setEnteredClaimCode('');
+    onClose();
   };
 
   return (
@@ -128,12 +140,13 @@ const ClaimDialog: React.FC<ClaimDialogProps> = ({ isOpen, onClose, orderId, cla
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <p className="text-sm text-gray-700">
-              Admin verification: Enter the claim code to complete the order.
+              Enter the claim code provided by the customer to confirm order pickup.
             </p>
             <Input
+              type="text"
               placeholder="Enter claim code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
+              value={enteredClaimCode}
+              onChange={(e) => setEnteredClaimCode(e.target.value)}
               className={error ? 'border-red-500' : ''}
             />
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -142,7 +155,7 @@ const ClaimDialog: React.FC<ClaimDialogProps> = ({ isOpen, onClose, orderId, cla
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Complete Order</Button>
+            <Button type="submit">Confirm Completion</Button>
           </div>
         </form>
       </DialogContent>
@@ -171,8 +184,7 @@ const CancelOrderDialog: React.FC<CancelOrderDialogProps> = ({
         </DialogHeader>
         <div className="space-y-4 text-sm text-gray-700">
           <p>
-            Are you sure you want to cancel order{' '}
-            <span className="font-medium">{orderId}</span>?
+            Are you sure you want to cancel order <span className="font-medium">{orderId}</span>?
           </p>
           <p className="text-muted-foreground">This action cannot be undone.</p>
         </div>
@@ -189,22 +201,11 @@ const CancelOrderDialog: React.FC<CancelOrderDialogProps> = ({
   );
 };
 
-interface DialogState {
-  isOpen: boolean;
-  selectedOrder: Order | null;
-}
-
-interface ClaimDialogState {
-  isOpen: boolean;
-  orderId: string;
-  claimCode: string;
-}
-
 interface OrderCardProps {
   order: Order;
-  onViewDetails: (order: Order) => void;
+  onViewDetails: (orderId: string) => void;
   onCancelOrder: (orderId: string) => void;
-  onOpenClaimDialog: (orderId: string, claimCode: string) => void;
+  onOpenClaimDialog: (orderId: string) => void;
 }
 
 const OrderCard: React.FC<OrderCardProps> = ({
@@ -213,6 +214,8 @@ const OrderCard: React.FC<OrderCardProps> = ({
   onCancelOrder,
   onOpenClaimDialog,
 }) => {
+  const isRecentOrder = new Date(order.orderDate) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
   const getStatusIcon = (status: OrderStatus) => {
     switch (status) {
       case OrderStatus.Pending:
@@ -243,13 +246,12 @@ const OrderCard: React.FC<OrderCardProps> = ({
     }
   };
 
-  const userDisplay =
-    order.user && order.user.firstName && order.user.lastName
-      ? `${order.user.firstName} ${order.user.lastName} (${order.user.email})`
-      : 'Unknown Customer';
+  const userDisplay = order.user
+    ? `${order.user.firstName} ${order.user.lastName} (${order.user.email})`
+    : order.userId;
 
   return (
-    <Card className="w-full">
+    <Card className={`w-full ${isRecentOrder ? 'border-blue-200' : ''}`}>
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -259,6 +261,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
                 {getStatusIcon(order.status)}
                 <span className="ml-1">{getStatusLabel(order.status)}</span>
               </Badge>
+              {isRecentOrder && <Badge variant="outline" className="ml-2">Recent</Badge>}
             </div>
             <p className="text-sm text-gray-500">{formatDate(order.orderDate)}</p>
             <p className="text-sm text-gray-500">Customer: {userDisplay}</p>
@@ -266,9 +269,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
               <p className="text-sm font-medium">
                 {formatCurrency(order.totalPrice)}
                 {order.discount > 0 && (
-                  <span className="text-green-600 ml-2">
-                    (-{formatCurrency(order.discount)})
-                  </span>
+                  <span className="text-green-600 ml-2">(-{formatCurrency(order.discount)})</span>
                 )}
               </p>
               <p className="ml-4 text-sm">Items: {order.totalQuantity}</p>
@@ -276,11 +277,10 @@ const OrderCard: React.FC<OrderCardProps> = ({
             <p className="text-sm text-gray-600 mt-1">{getStatusMessage(order.status)}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onViewDetails(order)}>
+            <Button variant="outline" size="sm" onClick={() => onViewDetails(order.orderId)}>
               <Eye className="h-4 w-4 mr-1" />
               Details
             </Button>
-
             {order.status === OrderStatus.Pending && (
               <Button
                 variant="outline"
@@ -292,12 +292,11 @@ const OrderCard: React.FC<OrderCardProps> = ({
                 Cancel
               </Button>
             )}
-
             {order.status === OrderStatus.Ongoing && (
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => onOpenClaimDialog(order.orderId, order.claimCode)}
+                onClick={() => onOpenClaimDialog(order.orderId)}
               >
                 <CheckCircle className="h-4 w-4 mr-1" />
                 Complete
@@ -316,13 +315,19 @@ export const AdminOrderManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [ordersPerPage] = useState(5); // Adjust as needed
-  const [dialogState, setDialogState] = useState<DialogState>({ isOpen: false, selectedOrder: null });
-  const [claimDialogState, setClaimDialogState] = useState<ClaimDialogState>({
-    isOpen: false,
-    orderId: '',
-    claimCode: '',
-  });
+  const [ordersPerPage] = useState(5);
+  const [dialogState, setDialogState] = useState<{
+    isOpen: boolean;
+    orderId: string | null;
+    order: Order | null;
+    loading: boolean;
+    error: string | null;
+  }>({ isOpen: false, orderId: null, order: null, loading: false, error: null });
+  const [claimDialogState, setClaimDialogState] = useState<{
+    isOpen: boolean;
+    orderId: string;
+    claimCode: string; // Store claimCode for validation
+  }>({ isOpen: false, orderId: '', claimCode: '' });
   const [cancelingOrderId, setCancelingOrderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -331,19 +336,43 @@ export const AdminOrderManagement: React.FC = () => {
     const fetchAllOrders = async () => {
       setIsLoading(true);
       try {
-        const response = await apiClient.get('/Order/admin/all-orders');
-        console.log('API Response:', response.data); // Log response to debug
-        const fetchedOrders = response.data.orders || [];
-        const mappedOrders = fetchedOrders.map((order: any) => ({
-          ...order,
-          status: order.status as OrderStatus,
-          orderDate: new Date(order.orderDate).toISOString(),
-        }));
-        setOrders(mappedOrders);
-        setFilteredOrders(mappedOrders); // Initialize with all orders
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) throw new Error('No token found');
+        const response = await apiClient.get('/Order/admin/all-orders', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.data.success) {
+          const fetchedOrders = response.data.orders || [];
+          const mappedOrders = fetchedOrders.map((order: any) => ({
+            orderId: order.orderId,
+            userId: order.userId,
+            cartId: order.cartId || '',
+            orderDate: new Date(order.orderDate).toISOString(),
+            totalQuantity: order.items.reduce((sum: number, item: any) => sum + item.quantity, 0),
+            totalPrice: order.totalPrice,
+            subTotal: order.subTotal,
+            discount: order.subTotal - order.totalPrice,
+            claimCode: order.claimCode || '',
+            status: order.status as OrderStatus,
+            user: order.user || undefined,
+            orderBooks: order.items.map((item: any) => ({
+              bookId: item.bookId,
+              title: item.title,
+              author: item.author || 'Unknown Author',
+              quantity: item.quantity,
+              price: item.unitPrice,
+              discount: item.discount || 0,
+              subtotal: item.subtotal,
+            })),
+          }));
+          setOrders(mappedOrders);
+          setFilteredOrders(mappedOrders);
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch orders');
+        }
       } catch (error: any) {
         console.error('Failed to fetch orders:', error);
-        toast.error(error.response?.data?.message || 'Failed to fetch orders');
+        toast.error(error.message || 'Failed to fetch orders');
       } finally {
         setIsLoading(false);
       }
@@ -351,35 +380,82 @@ export const AdminOrderManagement: React.FC = () => {
     fetchAllOrders();
   }, []);
 
+  // Fetch order details when dialog opens
+  useEffect(() => {
+    if (dialogState.isOpen && dialogState.orderId && !dialogState.order) {
+      const fetchOrderDetails = async () => {
+        setDialogState((prev) => ({ ...prev, loading: true, error: null }));
+        try {
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          if (!token) throw new Error('No token found');
+          const response = await apiClient.get(`/Order/${dialogState.orderId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.data.success) {
+            const order = response.data.order;
+            const mappedOrder: Order = {
+              orderId: order.orderId,
+              userId: order.userId,
+              cartId: order.cartId || '',
+              orderDate: new Date(order.orderDate).toISOString(),
+              totalQuantity: order.items.reduce((sum: number, item: any) => sum + item.quantity, 0),
+              totalPrice: order.totalPrice,
+              subTotal: order.subTotal,
+              discount: order.subTotal - order.totalPrice,
+              claimCode: order.claimCode || '',
+              status: order.status as OrderStatus,
+              user: order.user || undefined,
+              orderBooks: order.items.map((item: any) => ({
+                bookId: item.bookId,
+                title: item.title,
+                author: item.author || 'Unknown Author',
+                quantity: item.quantity,
+                price: item.unitPrice,
+                discount: item.discount || 0,
+                subtotal: item.subtotal,
+              })),
+            };
+            setDialogState((prev) => ({ ...prev, order: mappedOrder, loading: false }));
+          } else {
+            throw new Error(response.data.message || 'Failed to fetch order details');
+          }
+        } catch (error: any) {
+          console.error('Failed to fetch order details:', error);
+          setDialogState((prev) => ({
+            ...prev,
+            loading: false,
+            error: error.message || 'Failed to fetch order details',
+          }));
+        }
+      };
+      fetchOrderDetails();
+    }
+  }, [dialogState.isOpen, dialogState.orderId]);
+
   // Filter orders based on search term and status
   useEffect(() => {
-    // First apply status filter
-    let filtered = [...orders]; // Create a copy of all orders
-    
+    let filtered = [...orders];
+
     if (statusFilter !== 'all') {
       filtered = filtered.filter((order) => order.status === statusFilter);
     }
-    
-    // Then apply search filter
+
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
+      const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (order) =>
           order.orderId.toLowerCase().includes(term) ||
           order.claimCode.toLowerCase().includes(term) ||
-          (order.user &&
-            (order.user.firstName?.toLowerCase().includes(term) ||
-              order.user.lastName?.toLowerCase().includes(term) ||
-              order.user.email?.toLowerCase().includes(term))) ||
+          order.userId.toLowerCase().includes(term) ||
           order.orderBooks.some(
             (book) =>
-              book.title.toLowerCase().includes(term) || book.author.toLowerCase().includes(term)
-          )
+              book.title.toLowerCase().includes(term) ||
+              book.author.toLowerCase().includes(term),
+          ),
       );
     }
-    
+
     setFilteredOrders(filtered);
-    // Reset to first page when filters change
     setCurrentPage(1);
   }, [searchTerm, statusFilter, orders]);
 
@@ -398,12 +474,16 @@ export const AdminOrderManagement: React.FC = () => {
   const handleConfirmCancel = async () => {
     if (!cancelingOrderId) return;
     try {
-      const response = await apiClient.post(`/Order/cancel-order/${cancelingOrderId}`);
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) throw new Error('No token found');
+      const response = await apiClient.post(`/Order/cancel-order/${cancelingOrderId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (response.data.success) {
         setOrders((prev) =>
           prev.map((order) =>
-            order.orderId === cancelingOrderId ? { ...order, status: OrderStatus.Cancelled } : order
-          )
+            order.orderId === cancelingOrderId ? { ...order, status: OrderStatus.Cancelled } : order,
+          ),
         );
         toast.success('Order cancelled successfully');
       } else {
@@ -411,25 +491,26 @@ export const AdminOrderManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Failed to cancel order:', error);
-      toast.error(error.response?.data?.message || 'Failed to cancel order');
+      toast.error(error.message || 'Failed to cancel order');
     } finally {
       setCancelingOrderId(null);
     }
   };
 
-  const handleClaimOrder = async (orderId: string, enteredCode: string) => {
+  const handleClaimOrder = async (orderId: string, enteredClaimCode: string) => {
     try {
-      const response = await apiClient.post(`/Order/complete-order/${orderId}`, {
-        ClaimCode: enteredCode,
-      });
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) throw new Error('No token found');
+      const response = await apiClient.post(
+        `/Order/complete-order/${orderId}`,
+        { claimCode: enteredClaimCode },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
       if (response.data.success) {
         setOrders((prev) =>
-          prev.map((o) => {
-            if (o.orderId === orderId) {
-              return { ...o, status: OrderStatus.Completed };
-            }
-            return o;
-          })
+          prev.map((o) =>
+            o.orderId === orderId ? { ...o, status: OrderStatus.Completed } : o,
+          ),
         );
         toast.success('Order completed successfully');
       } else {
@@ -437,39 +518,34 @@ export const AdminOrderManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Failed to complete order:', error);
-      toast.error(error.response?.data?.message || 'Failed to complete order');
+      // Handle specific backend errors
+      if (error.response?.status === 400) {
+        toast.error(error.response.data.message || 'Invalid claim code');
+      } else {
+        toast.error(error.message || 'Failed to complete order');
+      }
     }
   };
 
   const closeDetailsDialog = () => {
-    setDialogState((prev) => ({ ...prev, isOpen: false }));
+    setDialogState({ isOpen: false, orderId: null, order: null, loading: false, error: null });
   };
 
   const closeClaimDialog = () => {
-    setClaimDialogState((prev) => ({ ...prev, isOpen: false }));
+    setClaimDialogState({ isOpen: false, orderId: '', claimCode: '' });
   };
 
-  const handleViewDetails = async (order: Order) => {
-    try {
-      const response = await apiClient.get(`/Order/${order.orderId}`);
-      if (response.data.success) {
-        const mappedOrder = {
-          ...response.data.order,
-          status: response.data.order.status as OrderStatus,
-          orderDate: new Date(response.data.order.orderDate).toISOString(),
-        };
-        setDialogState({ isOpen: true, selectedOrder: mappedOrder });
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch order details');
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch order details:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch order details');
+  const handleViewDetails = (orderId: string) => {
+    setDialogState({ isOpen: true, orderId, order: null, loading: false, error: null });
+  };
+
+  const handleOpenClaimDialog = (orderId: string) => {
+    const order = orders.find((o) => o.orderId === orderId);
+    if (order && order.claimCode) {
+      setClaimDialogState({ isOpen: true, orderId, claimCode: order.claimCode });
+    } else {
+      toast.error('Claim code not found for this order');
     }
-  };
-
-  const handleOpenClaimDialog = (orderId: string, claimCode: string) => {
-    setClaimDialogState({ isOpen: true, orderId, claimCode });
   };
 
   const getStatusIcon = (status: OrderStatus) => {
@@ -488,33 +564,42 @@ export const AdminOrderManagement: React.FC = () => {
   };
 
   const renderOrderDetails = () => {
-    const { selectedOrder } = dialogState;
+    const { order, loading, error } = dialogState;
 
-    if (!selectedOrder) return null;
+    if (loading) {
+      return <div className="text-center py-4">Loading order details...</div>;
+    }
 
-    const userDisplay =
-      selectedOrder.user && selectedOrder.user.firstName && selectedOrder.user.lastName
-        ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName} (${selectedOrder.user.email})`
-        : 'Unknown Customer';
+    if (error) {
+      return <div className="text-center py-4 text-red-500">{error}</div>;
+    }
+
+    if (!order) {
+      return null;
+    }
+
+    const userDisplay = order.user
+      ? `${order.user.firstName} ${order.user.lastName} (${order.user.email})`
+      : order.userId;
 
     return (
       <div className="space-y-6">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Order Details</h3>
-            <Badge variant={getStatusBadgeVariant(selectedOrder.status) as any}>
-              {getStatusIcon(selectedOrder.status)}
-              <span className="ml-1">{getStatusLabel(selectedOrder.status)}</span>
+            <Badge variant={getStatusBadgeVariant(order.status) as any}>
+              {getStatusIcon(order.status)}
+              <span className="ml-1">{getStatusLabel(order.status)}</span>
             </Badge>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h4 className="text-sm font-medium text-gray-500">Order ID</h4>
-              <p>{selectedOrder.orderId}</p>
+              <p>{order.orderId}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Order Date</h4>
-              <p>{formatDate(selectedOrder.orderDate)}</p>
+              <p>{formatDate(order.orderDate)}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Customer</h4>
@@ -522,25 +607,27 @@ export const AdminOrderManagement: React.FC = () => {
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Total Items</h4>
-              <p>{selectedOrder.totalQuantity}</p>
+              <p>{order.totalQuantity}</p>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-500">Total Price</h4>
-              <p>{formatCurrency(selectedOrder.totalPrice)}</p>
+              <h4 className="text-sm font-medium text-gray-500">Subtotal</h4>
+              <p>{formatCurrency(order.subTotal)}</p>
             </div>
-            {selectedOrder.discount > 0 && (
+            {order.discount > 0 && (
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Discount</h4>
-                <p>{formatCurrency(selectedOrder.discount)}</p>
+                <p>{formatCurrency(order.discount)}</p>
               </div>
             )}
-            {selectedOrder.status === OrderStatus.Ongoing && selectedOrder.claimCode && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500">Total Price</h4>
+              <p>{formatCurrency(order.totalPrice)}</p>
+            </div>
+            {order.status === OrderStatus.Ongoing && order.claimCode && (
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Claim Code</h4>
-                <p className="font-mono font-bold">{selectedOrder.claimCode}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Use this code to complete the order
-                </p>
+                <p className="font-mono font-bold">{order.claimCode}</p>
+                <p className="text-xs text-gray-500 mt-1">Use this code to complete the order</p>
               </div>
             )}
           </div>
@@ -554,27 +641,31 @@ export const AdminOrderManagement: React.FC = () => {
                 <TableHead>Title</TableHead>
                 <TableHead>Author</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
-                <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-right">Unit Price</TableHead>
+                <TableHead className="text-right">Discount</TableHead>
                 <TableHead className="text-right">Subtotal</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {selectedOrder.orderBooks.map((book, index) => (
+              {order.orderBooks.map((book, index) => (
                 <TableRow key={index}>
                   <TableCell>{book.title}</TableCell>
                   <TableCell>{book.author}</TableCell>
                   <TableCell className="text-right">{book.quantity}</TableCell>
                   <TableCell className="text-right">{formatCurrency(book.price)}</TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(book.price * book.quantity)}
+                    {typeof book.discount === 'number' && book.discount > 0
+                      ? `${(book.discount * 100).toFixed(0)}%`
+                      : '-'}
                   </TableCell>
+                  <TableCell className="text-right">{formatCurrency(book.subtotal)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
 
-        {selectedOrder.status === OrderStatus.Pending && (
+        {order.status === OrderStatus.Pending && (
           <div className="rounded-md bg-yellow-50 p-4">
             <div className="flex">
               <Clock className="h-5 w-5 text-yellow-400" />
@@ -588,7 +679,7 @@ export const AdminOrderManagement: React.FC = () => {
           </div>
         )}
 
-        {selectedOrder.status === OrderStatus.Ongoing && (
+        {order.status === OrderStatus.Ongoing && (
           <div className="rounded-md bg-blue-50 p-4">
             <div className="flex">
               <PackageOpen className="h-5 w-5 text-blue-400" />
@@ -601,11 +692,7 @@ export const AdminOrderManagement: React.FC = () => {
                   <Button
                     onClick={() => {
                       closeDetailsDialog();
-                      setClaimDialogState({
-                        isOpen: true,
-                        orderId: selectedOrder.orderId,
-                        claimCode: selectedOrder.claimCode,
-                      });
+                      setClaimDialogState({ isOpen: true, orderId: order.orderId, claimCode: order.claimCode });
                     }}
                   >
                     Complete Order
@@ -616,7 +703,7 @@ export const AdminOrderManagement: React.FC = () => {
           </div>
         )}
 
-        {selectedOrder.status === OrderStatus.Completed && (
+        {order.status === OrderStatus.Completed && (
           <div className="rounded-md bg-green-50 p-4">
             <div className="flex">
               <CheckCircle className="h-5 w-5 text-green-400" />
@@ -630,7 +717,7 @@ export const AdminOrderManagement: React.FC = () => {
           </div>
         )}
 
-        {selectedOrder.status === OrderStatus.Cancelled && (
+        {order.status === OrderStatus.Cancelled && (
           <div className="rounded-md bg-red-50 p-4">
             <div className="flex">
               <XCircle className="h-5 w-5 text-red-400" />
@@ -727,7 +814,7 @@ export const AdminOrderManagement: React.FC = () => {
       <div className="mb-6">
         <Input
           type="search"
-          placeholder="Search orders by ID, book title, author, or customer..."
+          placeholder="Search orders by ID, claim code, customer ID, book title, or author..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-lg"
@@ -755,14 +842,13 @@ export const AdminOrderManagement: React.FC = () => {
               <div className="text-center py-12">
                 <ShoppingBag className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-lg font-medium text-gray-900">No orders found</h3>
-                <p className="mt-1 text-gray-500">Try adjusting your search or filters.</p>
+                <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filters.</p>
               </div>
             )}
           </>
         )}
       </div>
 
-      {/* Pagination */}
       {filteredOrders.length > 0 && (
         <div className="flex justify-center mt-4">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
