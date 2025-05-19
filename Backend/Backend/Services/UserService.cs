@@ -172,6 +172,22 @@ public class UserService : IUserService
         }).ToList();
     }
 
+    public async Task<List<UserDetailsDTO>> GetAllStaffs()
+    {
+        var staffUsers = await _userRepository.GetUsersInRoleAsync("Staff");
+    
+        return staffUsers.Select(user => new UserDetailsDTO
+        {
+            UserId = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Address = user.Address,
+            DateJoined = user.DateJoined,
+            Email = user.Email,
+        }).ToList();
+    }
+
+
 
 public async Task<Guid> GetAdminIdAsync()
     {

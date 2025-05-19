@@ -103,4 +103,22 @@ public class UserRepository : IUserRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == userId);
     }
+    
+    public async Task<List<User>> GetUsersInRoleAsync(string roleName)
+    {
+        var role = await _context.Roles.SingleOrDefaultAsync(r => r.Name == roleName);
+        if (role == null)
+        {
+            return new List<User>();
+        }
+
+        var userIds = await _context.UserRoles
+            .Where(ur => ur.RoleId == role.Id)
+            .Select(ur => ur.UserId)
+            .ToListAsync();
+
+        return await _context.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync();
+    }
 }
