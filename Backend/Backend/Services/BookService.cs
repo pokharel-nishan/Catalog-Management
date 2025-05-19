@@ -236,8 +236,6 @@ namespace Backend.Services
             // Get all books and sales data
             var allBooks = await _bookRepository.GetAllBooksAsync();
             var salesCounts = await _bookRepository.GetBookSalesCountsAsync();
-            var maxSales = salesCounts.Values.DefaultIfEmpty(0).Max();
-            var bestSellerThreshold = maxSales * 0.8; // Top 20%
 
             var response = new FeaturedBooksDTO();
 
@@ -267,9 +265,9 @@ namespace Backend.Services
 
             // Best Sellers
             response.BestSellers = allBooks
-                .Where(b => salesCounts.TryGetValue(b.BookId, out var count) && count >= bestSellerThreshold)
-                .OrderByDescending(b => salesCounts[b.BookId])
-                .Take(6)
+                .Where(b => salesCounts.ContainsKey(b.BookId)) // Only books with sales
+                .OrderByDescending(b => salesCounts[b.BookId]) // Sort by sales (highest first)
+                .Take(6) // Take top 6
                 .Select(b => MapToBookCategoryDTO(b, now))
                 .ToList();
 
