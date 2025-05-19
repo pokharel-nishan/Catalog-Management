@@ -17,9 +17,19 @@ import { Checkbox } from "../../../ui/checkbox";
 import { useAuth } from "../../../../context/AuthContext";
 import apiClient from "../../../../api/config";
 
+interface UserDetails {
+  firstName: string;
+  lastName: string;
+  address: string;
+  dateJoined: string;
+  email: string;
+  roles: string[];
+}
+
 interface Book {
   bookId: string;
   isbn: string;
+  userId: string;
   title: string;
   author: string;
   publisher: string;
@@ -35,6 +45,7 @@ interface Book {
   discountStartDate: string | null;
   discountEndDate: string | null;
   arrivalDate: string | null;
+  user: UserDetails | null;
 }
 
 interface DialogState {
@@ -43,10 +54,8 @@ interface DialogState {
   selectedBook: Book | null;
 }
 
-// Format date for HTML date inputs
 const formatDateForInput = (dateString: string | null) => {
   if (!dateString) return "";
-
   try {
     const date = new Date(dateString);
     const year = date.getFullYear();
@@ -58,19 +67,17 @@ const formatDateForInput = (dateString: string | null) => {
   }
 };
 
-// Format date for API requests (ISO format)
 const formatDateForAPI = (dateString: string | null) => {
-  if (!dateString) return new Date().toISOString();
+  if (!dateString) return null;
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return new Date().toISOString();
+    if (isNaN(date.getTime())) return null;
     return date.toISOString();
   } catch (e) {
-    return new Date().toISOString();
+    return null;
   }
 };
 
-// Get today's date in YYYY-MM-DD format
 const getTodayFormatted = () => {
   const today = new Date();
   const year = today.getFullYear();
@@ -80,9 +87,9 @@ const getTodayFormatted = () => {
 };
 
 export const AdminBookManagement = () => {
-  const { user } = useAuth();
-
+  const { user, isAdmin } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogState, setDialogState] = useState<DialogState>({
     isOpen: false,
@@ -90,8 +97,8 @@ export const AdminBookManagement = () => {
     selectedBook: null,
   });
   const [enableDiscount, setEnableDiscount] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [bookForm, setBookForm] = useState<Omit<Book, "bookId">>({
+  const [isLoading, setIsLoading] = useState(false); // Managed locally
+  const [bookForm, setBookForm] = useState<Omit<Book, "bookId" | "userId" | "user">>({
     isbn: "",
     title: "",
     author: "",
@@ -111,13 +118,24 @@ export const AdminBookManagement = () => {
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Fetch user details from /user/me
+  const fetchUserDetails = async () => {
+    try {
+      const response = await apiClient.get("/user/me");
+      setUserDetails(response.data.userDetails);
+    } catch (error: any) {
+      console.error("Error fetching user details:", error.response?.data);
+      toast.error("Failed to fetch user details");
+    }
+  };
+
   // API Services
   const apiServices = {
     getAllBooks: async (): Promise<Book[]> => {
       setIsLoading(true);
       try {
         const response = await apiClient.get("/Book/getAllBooks");
-        return response.data;
+        return response.data || [];
       } catch (error: any) {
         console.error("Error fetching books:", error.response?.data);
         if (error.response) {
@@ -137,53 +155,52 @@ export const AdminBookManagement = () => {
         } else {
           toast.error("Failed to fetch books: " + error.message);
         }
-        throw error;
+        return [];
       } finally {
         setIsLoading(false);
       }
     },
 
-    addBook: async (newBook: Omit<Book, "bookId">): Promise<Book> => {
+    addBook: async (newBook: Omit<Book, "bookId" | "userId" | "user">): Promise<Book> => {
       setIsLoading(true);
       try {
-        const bookData = {
-          isbn: newBook.isbn,
-          title: newBook.title,
-          author: newBook.author,
-          publisher: newBook.publisher,
-          publicationDate: formatDateForAPI(newBook.publicationDate),
-          genre: newBook.genre,
-          language: newBook.language,
-          format: newBook.format,
-          description: newBook.description,
-          price: newBook.price,
-          stock: newBook.stock,
-          imageURL: newBook.imageURL || "",
-          discount: enableDiscount ? newBook.discount : 0,
-          discountStartDate: formatDateForAPI(
-            newBook.discountStartDate || getTodayFormatted()
-          ),
-          discountEndDate: formatDateForAPI(
-            newBook.discountEndDate || getTodayFormatted()
-          ),
-          arrivalDate: formatDateForAPI(newBook.arrivalDate),
-        };
-        console.log("Adding book with data:", bookData);
-        const response = await apiClient.post("/Book/addBook", bookData);
+        const formData = new FormData();
+        formData.append("ISBN", newBook.isbn);
+        formData.append("Title", newBook.title);
+        formData.append("Author", newBook.author);
+        formData.append("Publisher", newBook.publisher);
+        formData.append("PublicationDate", formatDateForAPI(newBook.publicationDate) || "");
+        formData.append("Genre", newBook.genre);
+        formData.append("Language", newBook.language);
+        formData.append("Format", newBook.format);
+        formData.append("Description", newBook.description);
+        formData.append("Price", newBook.price.toString());
+        formData.append("Stock", newBook.stock.toString());
+        formData.append("Discount", (enableDiscount ? newBook.discount : 0).toString());
+
+        // Handle discount dates
+        if (enableDiscount && newBook.discountStartDate && newBook.discountEndDate) {
+          formData.append("DiscountStartDate", formatDateForAPI(newBook.discountStartDate) || "");
+          formData.append("DiscountEndDate", formatDateForAPI(newBook.discountEndDate) || "");
+        } else {
+          formData.append("DiscountStartDate", "");
+          formData.append("DiscountEndDate", "");
+        }
+
+        // Handle arrival date
+        formData.append("ArrivalDate", formatDateForAPI(newBook.arrivalDate) || "");
+
+        if (selectedFile) {
+          formData.append("ImageFile", selectedFile);
+        }
+
+        const response = await apiClient.post("/Book/addBook", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         return response.data;
       } catch (error: any) {
         console.error("Error adding book:", error.response?.data);
-        if (error.response) {
-          toast.error(
-            `Error: ${error.response.status} - ${
-              error.response.data.message || "Failed to add book"
-            }`
-          );
-        } else if (error.request) {
-          toast.error("Network error. Please check your connection.");
-        } else {
-          toast.error("Failed to add book: " + error.message);
-        }
+        toast.error("Failed to add book");
         throw error;
       } finally {
         setIsLoading(false);
@@ -193,48 +210,46 @@ export const AdminBookManagement = () => {
     updateBook: async (updatedBook: Book): Promise<Book> => {
       setIsLoading(true);
       try {
-        const bookData = {
-          bookId: updatedBook.bookId,
-          isbn: updatedBook.isbn,
-          title: updatedBook.title,
-          author: updatedBook.author,
-          publisher: updatedBook.publisher,
-          publicationDate: formatDateForAPI(updatedBook.publicationDate),
-          genre: updatedBook.genre,
-          language: updatedBook.language,
-          format: updatedBook.format,
-          description: updatedBook.description,
-          price: updatedBook.price,
-          stock: updatedBook.stock,
-          imageURL: updatedBook.imageURL || "",
-          discount: enableDiscount ? updatedBook.discount : 0,
-          discountStartDate: formatDateForAPI(
-            updatedBook.discountStartDate || getTodayFormatted()
-          ),
-          discountEndDate: formatDateForAPI(
-            updatedBook.discountEndDate || getTodayFormatted()
-          ),
-          arrivalDate: formatDateForAPI(updatedBook.arrivalDate),
-        };
-        console.log("Updating book with data:", bookData);
+        const formData = new FormData();
+        formData.append("BookId", updatedBook.bookId);
+        formData.append("ISBN", updatedBook.isbn);
+        formData.append("Title", updatedBook.title);
+        formData.append("Author", updatedBook.author);
+        formData.append("Publisher", updatedBook.publisher);
+        formData.append("PublicationDate", formatDateForAPI(updatedBook.publicationDate) || "");
+        formData.append("Genre", updatedBook.genre);
+        formData.append("Language", updatedBook.language);
+        formData.append("Format", updatedBook.format);
+        formData.append("Description", updatedBook.description);
+        formData.append("Price", updatedBook.price.toString());
+        formData.append("Stock", updatedBook.stock.toString());
+        formData.append("Discount", (enableDiscount ? updatedBook.discount : 0).toString());
+
+        // Handle discount dates
+        if (enableDiscount && updatedBook.discountStartDate && updatedBook.discountEndDate) {
+          formData.append("DiscountStartDate", formatDateForAPI(updatedBook.discountStartDate) || "");
+          formData.append("DiscountEndDate", formatDateForAPI(updatedBook.discountEndDate) || "");
+        } else {
+          formData.append("DiscountStartDate", "");
+          formData.append("DiscountEndDate", "");
+        }
+
+        // Handle arrival date
+        formData.append("ArrivalDate", formatDateForAPI(updatedBook.arrivalDate) || "");
+
+        if (selectedFile) {
+          formData.append("ImageFile", selectedFile);
+        }
+
         const response = await apiClient.put(
           `/Book/updateBookDetails/${updatedBook.bookId}`,
-          bookData
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
         );
         return response.data;
       } catch (error: any) {
         console.error("Error updating book:", error.response?.data);
-        if (error.response) {
-          toast.error(
-            `Error: ${error.response.status} - ${
-              error.response.data.message || "Failed to update book"
-            }`
-          );
-        } else if (error.request) {
-          toast.error("Network error. Please check your connection.");
-        } else {
-          toast.error("Failed to update book: " + error.message);
-        }
+        toast.error("Failed to update book");
         throw error;
       } finally {
         setIsLoading(false);
@@ -248,17 +263,7 @@ export const AdminBookManagement = () => {
         toast.success("Book deleted successfully");
       } catch (error: any) {
         console.error("Error deleting book:", error.response?.data);
-        if (error.response) {
-          toast.error(
-            `Error: ${error.response.status} - ${
-              error.response.data.message || "Failed to delete book"
-            }`
-          );
-        } else if (error.request) {
-          toast.error("Network error. Please check your connection.");
-        } else {
-          toast.error("Failed to delete book: " + error.message);
-        }
+        toast.error("Failed to delete book");
         throw error;
       } finally {
         setIsLoading(false);
@@ -267,21 +272,15 @@ export const AdminBookManagement = () => {
   };
 
   useEffect(() => {
-    if (!user) {
-      toast.error("You must be logged in to access book management");
-    } else {
-      console.log("Authenticated user:", user);
+    if (user && isAdmin) {
+      fetchUserDetails();
       fetchBooks();
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   const fetchBooks = async () => {
-    try {
-      const data = await apiServices.getAllBooks();
-      setBooks(data);
-    } catch (error) {
-      // Error handled in getAllBooks
-    }
+    const data = await apiServices.getAllBooks();
+    setBooks(data);
   };
 
   useEffect(() => {
@@ -329,59 +328,14 @@ export const AdminBookManagement = () => {
     }
   }, [dialogState]);
 
-  const handleAddBook = async (newBook: Omit<Book, "bookId">) => {
+  const handleAddBook = async (newBook: Omit<Book, "bookId" | "userId" | "user">) => {
     try {
-      const formData = new FormData();
-      formData.append("isbn", newBook.isbn);
-      formData.append("title", newBook.title);
-      formData.append("author", newBook.author);
-      formData.append("publisher", newBook.publisher);
-      formData.append(
-        "publicationDate",
-        formatDateForAPI(newBook.publicationDate)
-      );
-      formData.append("genre", newBook.genre);
-      formData.append("language", newBook.language);
-      formData.append("format", newBook.format);
-      formData.append("description", newBook.description);
-      formData.append("price", newBook.price.toString());
-      formData.append("stock", newBook.stock.toString());
-      formData.append(
-        "discount",
-        (enableDiscount ? newBook.discount : 0).toString()
-      );
-      formData.append(
-        "discountStartDate",
-        formatDateForAPI(newBook.discountStartDate || getTodayFormatted())
-      );
-      formData.append(
-        "discountEndDate",
-        formatDateForAPI(newBook.discountEndDate || getTodayFormatted())
-      );
-      formData.append(
-        "arrivalDate",
-        formatDateForAPI(newBook.arrivalDate || getTodayFormatted())
-      );
-
-      if (selectedFile) {
-        formData.append("imageFile", selectedFile);
-      }
-
-      const response = await apiClient.post("/Book/addBook", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      setBooks((prev) => [response.data, ...prev]);
+      const book = await apiServices.addBook(newBook);
+      setBooks((prev) => [book, ...prev]);
       toast.success("Book added successfully");
       closeDialog();
-    } catch (error: any) {
-      console.error("Error adding book:", error.response?.data);
-      toast.error("Failed to add book");
-      throw error;
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      // Handled in apiServices.addBook
     }
   };
 
@@ -393,22 +347,18 @@ export const AdminBookManagement = () => {
       );
       toast.success("Book updated successfully");
       closeDialog();
-    } catch {
-      // Error handled in updateBook
+    } catch (error) {
+      // Handled in apiServices.updateBook
     }
   };
 
   const handleDeleteBook = async (bookId: string) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this book?"
-    );
-    if (!confirmDelete) return;
-
+    if (!window.confirm("Are you sure you want to delete this book?")) return;
     try {
       await apiServices.deleteBook(bookId);
       setBooks((prev) => prev.filter((b) => b.bookId !== bookId));
-    } catch {
-      // Error handled in deleteBook
+    } catch (error) {
+      // Handled in apiServices.deleteBook
     }
   };
 
@@ -418,7 +368,6 @@ export const AdminBookManagement = () => {
     >
   ) => {
     const { name, value, type } = e.target;
-
     if (name === "imageFile") return;
 
     if (type === "number") {
@@ -431,7 +380,6 @@ export const AdminBookManagement = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     const requiredFields = [
       "isbn",
       "title",
@@ -466,15 +414,10 @@ export const AdminBookManagement = () => {
       ...bookForm,
       imageURL: bookForm.imageURL || "",
       discount: enableDiscount ? bookForm.discount : 0,
-      discountStartDate: enableDiscount
-        ? bookForm.discountStartDate
-        : getTodayFormatted(),
-      discountEndDate: enableDiscount
-        ? bookForm.discountEndDate
-        : getTodayFormatted(),
+      discountStartDate: enableDiscount ? bookForm.discountStartDate : null,
+      discountEndDate: enableDiscount ? bookForm.discountEndDate : null,
+      arrivalDate: bookForm.arrivalDate || null,
     };
-
-    console.log("Submitting book data:", submissionData);
 
     if (dialogState.mode === "add") {
       handleAddBook(submissionData);
@@ -482,15 +425,17 @@ export const AdminBookManagement = () => {
       handleUpdateBook({
         ...submissionData,
         bookId: dialogState.selectedBook.bookId,
+        userId: dialogState.selectedBook.userId,
+        user: dialogState.selectedBook.user,
       });
     }
   };
 
   const closeDialog = () => {
     setDialogState((prev) => ({ ...prev, isOpen: false }));
+    setSelectedFile(null);
   };
 
-  // Format price with currency
   const formatPrice = (price: number, discount: number) => {
     const finalPrice = price * (1 - discount);
     return new Intl.NumberFormat("en-US", {
@@ -499,19 +444,27 @@ export const AdminBookManagement = () => {
     }).format(finalPrice);
   };
 
-  // Check if a discount is active
   const isDiscountActive = (book: Book) => {
     if (!book.discount || book.discount <= 0) return false;
     if (!book.discountStartDate || !book.discountEndDate) return false;
 
-    const now = new Date();
+    const now = new Date("2025-05-19T21:30:00+0545"); // Current time
     const startDate = new Date(book.discountStartDate);
     const endDate = new Date(book.discountEndDate);
 
     return now >= startDate && now <= endDate;
   };
 
-  // Check if user is authenticated
+  const isDiscountScheduled = (book: Book) => {
+    if (!book.discount || book.discount <= 0) return false;
+    if (!book.discountStartDate || !book.discountEndDate) return false;
+
+    const now = new Date("2025-05-19T21:30:00+0545"); // Current time
+    const startDate = new Date(book.discountStartDate);
+
+    return now < startDate;
+  };
+
   if (!user) {
     return (
       <div className="container py-8">
@@ -522,10 +475,7 @@ export const AdminBookManagement = () => {
           <p className="text-gray-500">
             Please login to access the book management system.
           </p>
-          <Button
-            className="mt-4"
-            onClick={() => (window.location.href = "/login")}
-          >
+          <Button className="mt-4" onClick={() => (window.location.href = "/login")}>
             Go to Login
           </Button>
         </div>
@@ -533,17 +483,33 @@ export const AdminBookManagement = () => {
     );
   }
 
+  if (!isAdmin) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">
+            Access Denied
+          </h2>
+          <p className="text-gray-500">
+            Only admins can access the book management system.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const BookCard = ({ book }: { book: Book }) => {
     const discountActive = isDiscountActive(book);
+    const discountScheduled = isDiscountScheduled(book);
 
     return (
       <Card className="w-full">
         <CardContent className="pt-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h3 className="text-xl font-semibold">{book.title}</h3>
-              <p className="text-sm text-gray-700">by {book.author}</p>
-              <p className="text-sm text-gray-500">ISBN: {book.isbn}</p>
+              <h3 className="text-xl font-semibold">{book.title || "No Title"}</h3>
+              <p className="text-sm text-gray-700">by {book.author || "Unknown"}</p>
+              <p className="text-sm text-gray-500">ISBN: {book.isbn || "N/A"}</p>
               <div className="flex items-center mt-2">
                 <p className="text-sm font-medium">
                   {discountActive ? (
@@ -555,11 +521,19 @@ export const AdminBookManagement = () => {
                         {formatPrice(book.price, book.discount)}
                       </span>
                     </>
+                  ) : discountScheduled && book.discountStartDate ? (
+                    <>
+                      <span>${book.price.toFixed(2)}</span>
+                      <span className="text-yellow-600 ml-2">
+                        (Discount {book.discount * 100}% scheduled from{" "}
+                        {new Date(book.discountStartDate).toLocaleDateString()})
+                      </span>
+                    </>
                   ) : (
                     <span>${book.price.toFixed(2)}</span>
                   )}
                 </p>
-                <p className="ml-4 text-sm">Stock: {book.stock}</p>
+                <p className="ml-4 text-sm">Stock: {book.stock || 0}</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -567,11 +541,7 @@ export const AdminBookManagement = () => {
                 variant="outline"
                 size="icon"
                 onClick={() =>
-                  setDialogState({
-                    isOpen: true,
-                    mode: "view",
-                    selectedBook: book,
-                  })
+                  setDialogState({ isOpen: true, mode: "view", selectedBook: book })
                 }
               >
                 <Eye className="h-4 w-4" />
@@ -580,11 +550,7 @@ export const AdminBookManagement = () => {
                 variant="outline"
                 size="icon"
                 onClick={() =>
-                  setDialogState({
-                    isOpen: true,
-                    mode: "edit",
-                    selectedBook: book,
-                  })
+                  setDialogState({ isOpen: true, mode: "edit", selectedBook: book })
                 }
               >
                 <Edit className="h-4 w-4" />
@@ -607,71 +573,88 @@ export const AdminBookManagement = () => {
     const { mode, selectedBook } = dialogState;
 
     if (mode === "view" && selectedBook) {
+      const discountActive = isDiscountActive(selectedBook);
+      const discountScheduled = isDiscountScheduled(selectedBook);
+
       return (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h4 className="text-sm font-medium text-gray-500">Title</h4>
-              <p>{selectedBook.title}</p>
+              <p>{selectedBook.title || "N/A"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Author</h4>
-              <p>{selectedBook.author}</p>
+              <p>{selectedBook.author || "N/A"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">ISBN</h4>
-              <p>{selectedBook.isbn}</p>
+              <p>{selectedBook.isbn || "N/A"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Publisher</h4>
-              <p>{selectedBook.publisher}</p>
+              <p>{selectedBook.publisher || "N/A"}</p>
             </div>
             <div>
-              <h4 className="text-sm font-medium text-gray-500">
-                Publication Date
-              </h4>
+              <h4 className="text-sm font-medium text-gray-500">Publication Date</h4>
               <p>
-                {new Date(selectedBook.publicationDate).toLocaleDateString()}
+                {selectedBook.publicationDate
+                  ? new Date(selectedBook.publicationDate).toLocaleDateString()
+                  : "N/A"}
               </p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Genre</h4>
-              <p>{selectedBook.genre}</p>
+              <p>{selectedBook.genre || "N/A"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Language</h4>
-              <p>{selectedBook.language}</p>
+              <p>{selectedBook.language || "N/A"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Format</h4>
-              <p>{selectedBook.format}</p>
+              <p>{selectedBook.format || "N/A"}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Price</h4>
-              <p>${selectedBook.price.toFixed(2)}</p>
+              <p>
+                {discountActive ? (
+                  <>
+                    <span className="line-through text-gray-500 mr-2">
+                      ${selectedBook.price.toFixed(2)}
+                    </span>
+                    <span className="text-green-600">
+                      {formatPrice(selectedBook.price, selectedBook.discount)}
+                    </span>
+                  </>
+                ) : discountScheduled && selectedBook.discountStartDate ? (
+                  <>
+                    <span>${selectedBook.price.toFixed(2)}</span>
+                    <span className="text-yellow-600 ml-2">
+                      (Discount {selectedBook.discount * 100}% scheduled from{" "}
+                      {new Date(selectedBook.discountStartDate).toLocaleDateString()})
+                    </span>
+                  </>
+                ) : (
+                  <span>${selectedBook.price.toFixed(2)}</span>
+                )}
+              </p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-500">Stock</h4>
-              <p>{selectedBook.stock}</p>
+              <p>{selectedBook.stock || 0}</p>
             </div>
             {selectedBook.discount > 0 && (
               <>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">
-                    Discount
-                  </h4>
+                  <h4 className="text-sm font-medium text-gray-500">Discount</h4>
                   <p>{(selectedBook.discount * 100).toFixed(0)}%</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">
-                    Discount Period
-                  </h4>
+                  <h4 className="text-sm font-medium text-gray-500">Discount Period</h4>
                   <p>
-                    {selectedBook.discountStartDate &&
-                    selectedBook.discountEndDate
-                      ? `${new Date(
-                          selectedBook.discountStartDate
-                        ).toLocaleDateString()} - ${new Date(
+                    {selectedBook.discountStartDate && selectedBook.discountEndDate
+                      ? `${new Date(selectedBook.discountStartDate).toLocaleDateString()} - ${new Date(
                           selectedBook.discountEndDate
                         ).toLocaleDateString()}`
                       : "N/A"}
@@ -681,22 +664,19 @@ export const AdminBookManagement = () => {
             )}
             {selectedBook.arrivalDate && (
               <div>
-                <h4 className="text-sm font-medium text-gray-500">
-                  Arrival Date
-                </h4>
+                <h4 className="text-sm font-medium text-gray-500">Arrival Date</h4>
                 <p>{new Date(selectedBook.arrivalDate).toLocaleDateString()}</p>
               </div>
             )}
           </div>
           <div>
             <h4 className="text-sm font-medium text-gray-500">Description</h4>
-            <p className="mt-1">{selectedBook.description}</p>
+            <p className="mt-1">{selectedBook.description || "N/A"}</p>
           </div>
         </div>
       );
     }
 
-    // Edit or Add mode
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -831,7 +811,6 @@ export const AdminBookManagement = () => {
               onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="arrivalDate">Arrival Date</Label>
             <Input
@@ -843,7 +822,6 @@ export const AdminBookManagement = () => {
             />
           </div>
         </div>
-
         <div className="space-y-2">
           <Label htmlFor="description">Description *</Label>
           <textarea
@@ -853,9 +831,8 @@ export const AdminBookManagement = () => {
             value={bookForm.description}
             onChange={handleFormChange}
             required
-          ></textarea>
+          />
         </div>
-
         <div className="pt-4 border-t">
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -865,7 +842,6 @@ export const AdminBookManagement = () => {
             />
             <Label htmlFor="enableDiscount">Enable Discount</Label>
           </div>
-
           {enableDiscount && (
             <div className="grid grid-cols-3 gap-4 mt-4">
               <div className="space-y-2">
@@ -881,7 +857,7 @@ export const AdminBookManagement = () => {
                   }}
                   min="0"
                   max="100"
-                  required={enableDiscount}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -891,13 +867,13 @@ export const AdminBookManagement = () => {
                   id="discountStartDate"
                   name="discountStartDate"
                   value={formatDateForInput(bookForm.discountStartDate)}
-                  onChange={(e) => {
+                  onChange={(e) =>
                     setBookForm((prev) => ({
                       ...prev,
                       discountStartDate: e.target.value,
-                    }));
-                  }}
-                  required={enableDiscount}
+                    }))
+                  }
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -907,19 +883,18 @@ export const AdminBookManagement = () => {
                   id="discountEndDate"
                   name="discountEndDate"
                   value={formatDateForInput(bookForm.discountEndDate)}
-                  onChange={(e) => {
+                  onChange={(e) =>
                     setBookForm((prev) => ({
                       ...prev,
                       discountEndDate: e.target.value,
-                    }));
-                  }}
-                  required={enableDiscount}
+                    }))
+                  }
+                  required
                 />
               </div>
             </div>
           )}
         </div>
-
         <DialogFooter>
           <Button
             type="button"
@@ -930,11 +905,7 @@ export const AdminBookManagement = () => {
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading
-              ? "Processing..."
-              : mode === "add"
-              ? "Add Book"
-              : "Update Book"}
+            {isLoading ? "Processing..." : dialogState.mode === "add" ? "Add Book" : "Update Book"}
           </Button>
         </DialogFooter>
       </form>
@@ -944,9 +915,10 @@ export const AdminBookManagement = () => {
   return (
     <div className="container py-8">
       <ToastContainer position="top-right" autoClose={3000} />
-
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Book Management</h2>
+        <h2 className="text-2xl font-bold">
+          Book Management {userDetails ? ` - Admin: ${userDetails.firstName} ${userDetails.lastName}` : ""}
+        </h2>
         <Button
           onClick={() =>
             setDialogState({ isOpen: true, mode: "add", selectedBook: null })
@@ -956,7 +928,6 @@ export const AdminBookManagement = () => {
           Add New Book
         </Button>
       </div>
-
       <div className="mb-6">
         <Input
           type="search"
@@ -966,15 +937,14 @@ export const AdminBookManagement = () => {
           className="max-w-lg"
         />
       </div>
-
       {books.length > 0 ? (
         <div className="space-y-4">
           {books
             .filter(
               (book) =>
-                book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                book.isbn.includes(searchTerm)
+                book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                book.isbn?.includes(searchTerm)
             )
             .map((book) => (
               <BookCard key={book.bookId} book={book} />
@@ -983,7 +953,6 @@ export const AdminBookManagement = () => {
       ) : (
         <p className="text-gray-500">No books found.</p>
       )}
-
       <Dialog
         open={dialogState.isOpen}
         onOpenChange={(open) => !open && closeDialog()}
