@@ -148,6 +148,28 @@ public class UserController : ControllerBase
         return Ok(new { success = true, userDetails });       
     }
     
+    [Authorize]
+    [HttpGet("all-staffs")]
+    public async Task<IActionResult> GetAllStaffs()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var adminDetails = await _userService.GetUserDetailsByIdAsync(userId.Value);
+
+        if (adminDetails.Roles[0] != "Admin")
+        {
+            return StatusCode(403, new { 
+                success = false, 
+                message = "You don't have permission to view this order",
+                requiredRoles = new[] { "Admin" }
+            });
+        }
+
+        var userDetails = _userService.GetAllStaffs();
+
+        return Ok(new { success = true, userDetails });       
+    }
     
     private Guid? GetUserId()
     {

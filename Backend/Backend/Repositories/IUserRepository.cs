@@ -20,5 +20,6 @@ public interface IUserRepository
     
     Task<User?> GetUserByIdAsync(Guid userId);
 
+    Task<List<User>> GetUsersInRoleAsync(string roleName);
 
 }
