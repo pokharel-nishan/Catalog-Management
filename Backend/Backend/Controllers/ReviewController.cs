@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Backend.DTOs.User;
 using Backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.JsonWebTokens;
 
@@ -29,6 +30,7 @@ public class ReviewController: ControllerBase
         return Ok(new { success = true, review });
     }
     
+    [Authorize(Roles = "Regular")]
     [HttpPost("add/{bookId}")]
     public async Task<IActionResult> AddReview(Guid bookId, [FromBody] AddReviewDTO reviewDto)
     {

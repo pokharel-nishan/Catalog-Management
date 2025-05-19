@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Backend.DTOs.User;
 using Backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,6 +18,7 @@ public class CartController: ControllerBase
         _cartService = cartService;
     }
     
+    [Authorize(Roles = "Regular")]
     [HttpPost("add-to-cart/{bookId}")]
     public async Task<IActionResult> AddTToCart(Guid bookId)
     {
@@ -54,6 +56,7 @@ public class CartController: ControllerBase
         }
     }
     
+    [Authorize(Roles = "Regular")]
     [HttpDelete("remove-item/{bookId}")]
     public async Task<IActionResult> RemoveItemFromCart(Guid bookId)
     {
@@ -64,6 +67,7 @@ public class CartController: ControllerBase
         return success ? Ok(new { success = true }) : BadRequest(new { success = false });
     }
     
+    [Authorize(Roles = "Regular")]
     [HttpPut("update-quantity/{bookId}/{newQuantity}")]
     public async Task<IActionResult> UpdateCartItemQuantity(Guid bookId, int newQuantity)
     {
@@ -81,6 +85,7 @@ public class CartController: ControllerBase
         }
     } 
     
+    [Authorize(Roles = "Regular")]
     [HttpGet("cart-items")]
     public async Task<IActionResult> GetCartItems()
     {
@@ -92,6 +97,7 @@ public class CartController: ControllerBase
     }
     
     
+    [Authorize(Roles = "Regular")]
     [HttpPost("clear")]
     public async Task<IActionResult> ClearCart()
     {

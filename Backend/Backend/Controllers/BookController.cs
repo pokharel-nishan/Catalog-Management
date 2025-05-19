@@ -21,8 +21,8 @@ public class BookController : ControllerBase
         _userService = userService;
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("addBook")]
-    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AddBookAsync([FromForm] AddBookDTO addBookFormDTO, [FromForm] IFormFile imageFile)
     {
         var adminId = await _userService.GetAdminIdAsync();
@@ -75,14 +75,13 @@ public class BookController : ControllerBase
 
 
     [HttpGet("getAllBooks")]
-    //[Authorize(Roles = "Admin")]
     public async Task<List<Book>> GetAllBooksAsync()
     {
         return await _bookService.GetAllBooksAsync();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("updateBookDetails/{bookId}")]
-    //[Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateBookDetailsAsync(Guid bookId, UpdateBookDTO updateBookDTO)
     {
         bool isBookUpdated = await _bookService.UpdateBookDetailsAsync(bookId, updateBookDTO);
@@ -97,8 +96,8 @@ public class BookController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("deleteBook/{bookId}")]
-    //[Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteBookAsync(Guid bookId)
     {
         bool isBookDeleted = await _bookService.DeleteBookAsync(bookId);

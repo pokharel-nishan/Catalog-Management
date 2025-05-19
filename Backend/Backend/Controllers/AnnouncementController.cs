@@ -21,6 +21,7 @@ public class AnnouncementController : ControllerBase
         _userService = userService;
     }
     
+    [Authorize(Roles = "Admin")]
     [HttpGet("active")]
     public async Task<IActionResult> GetActiveAnnouncements()
     {
@@ -28,6 +29,7 @@ public class AnnouncementController : ControllerBase
         return Ok(announcements);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("addAnnouncement")]
     //[Authorize(Roles = "Admin")]
     public async Task<IActionResult> AddAnnouncementAsync([FromBody] AddAnnouncementDTO addAnnouncementDTO)
@@ -47,14 +49,13 @@ public class AnnouncementController : ControllerBase
     }
 
     [HttpGet("getAllAnnouncements")]
-    //[Authorize(Roles = "Admin")]
     public async Task<List<Announcement>> GetAllAnnouncementsAsync()
     {
         return await _announcementService.GetAllAnnouncementsAsync();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("updateAnnouncementDetails/{announcementId}")]
-    //[Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateAnnouncementDetailsAsync(Guid announcementId, UpdateAnnouncementDTO updateAnnouncementDTO)
     {
         bool isAnnouncementUpdated = await _announcementService.UpdateAnnouncementDetailsAsync(announcementId, updateAnnouncementDTO);
@@ -69,8 +70,8 @@ public class AnnouncementController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("deleteAnnouncement/{announcementId}")]
-    //[Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteAnnouncementAsync(Guid announcementId)
     {
         bool isAnnouncementDeleted = await _announcementService.DeleteAnnouncementAsync(announcementId);
