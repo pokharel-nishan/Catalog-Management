@@ -152,10 +152,6 @@ const CartDrawer: React.FC = () => {
                 <span className="font-medium">Subtotal</span>
                 <span>Rs {total.toFixed(2)}</span>
               </div>
-              <div className="mb-4 flex justify-between text-sm text-gray-500">
-                <span>Shipping Cost</span>
-                <span>Rs 50.00</span>
-              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsCartOpen(false)}
