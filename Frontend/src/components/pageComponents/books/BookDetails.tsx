@@ -270,7 +270,7 @@ const BookDetailPage = () => {
 
   if (!book) return <div className="container mx-auto px-4 py-8">Loading...</div>;
 
-  const discountedPrice = book.discount > 0 ? book.price * (1 - book.discount / 100) : book.price;
+  const discountedPrice = book.discount > 0 ? book.price * (1 - book.discount ) : book.price;
 
   return (
     <Layout>
@@ -285,7 +285,7 @@ const BookDetailPage = () => {
             />
             {book.discount > 0 && (
               <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                {book.discount}% OFF
+                {(book.discount)*100}% OFF
               </div>
             )}
           </div>
