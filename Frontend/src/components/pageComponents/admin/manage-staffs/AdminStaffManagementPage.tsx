@@ -19,7 +19,7 @@ interface Staff {
   lastName: string;
   email: string;
   address?: string;
-  role: string;
+  role?: string; // Made optional to handle null roles
 }
 
 interface DialogState {
@@ -27,9 +27,6 @@ interface DialogState {
   mode: 'view' | 'edit' | 'add';
   selectedStaff: Staff | null;
 }
-
-// Role options for the dropdown
-const roleOptions = ['Sales', 'Support', 'Marketing', 'HR', 'Finance', 'Operations'];
 
 export const AdminStaffManagement: React.FC = () => {
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -45,12 +42,23 @@ export const AdminStaffManagement: React.FC = () => {
   useEffect(() => {
     const fetchStaff = async () => {
       try {
-        const response = await apiClient.get('/Staff');
-        setStaff(response.data);
-        setFilteredStaff(response.data);
+        const response = await apiClient.get('/User/all-staffs');
+        // Extract staff array from response.data.userDetails.result
+        const staffData = response.data.userDetails?.result || [];
+        // Map API fields to Staff interface
+        const mappedStaff = staffData.map((s: any) => ({
+          id: s.userId,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          email: s.email,
+          address: s.address,
+          role: s.roles || 'Unknown', // Fallback for null roles
+        }));
+        setStaff(mappedStaff);
+        setFilteredStaff(mappedStaff);
       } catch (error: any) {
         console.error('Failed to fetch staff:', error);
-        toast.error('Failed to fetch staff');
+        toast.error(error.response?.data?.message || 'Failed to fetch staff');
       }
     };
     fetchStaff();
@@ -60,7 +68,7 @@ export const AdminStaffManagement: React.FC = () => {
   useEffect(() => {
     setFilteredStaff(
       staff.filter((s) =>
-        `${s.firstName} ${s.lastName} ${s.email} ${s.role}`
+        `${s.firstName} ${s.lastName} ${s.email} ${s.role || ''}`
           .toLowerCase()
           .includes(searchTerm.toLowerCase())
       )
@@ -78,12 +86,20 @@ export const AdminStaffManagement: React.FC = () => {
         address: newStaff.address,
         role: newStaff.role,
       });
-      const newStaffMember = { ...newStaff, id: response.data.UserId };
+      // Map response to Staff interface
+      const newStaffMember: Staff = {
+        id: response.data.UserId,
+        firstName: newStaff.firstName,
+        lastName: newStaff.lastName,
+        email: newStaff.email,
+        address: newStaff.address,
+        role: newStaff.role || 'Unknown',
+      };
       setStaff((prev) => [newStaffMember, ...prev]);
       toast.success('Staff added successfully');
     } catch (error: any) {
       console.error('Failed to add staff:', error);
-      toast.error(error.response?.data || 'Failed to add staff');
+      toast.error(error.response?.data?.message || 'Failed to add staff');
     }
   };
 
@@ -97,8 +113,17 @@ export const AdminStaffManagement: React.FC = () => {
         address: updatedStaff.address,
         role: updatedStaff.role,
       });
+      // Map response to Staff interface
+      const updatedStaffMember: Staff = {
+        id: updatedStaff.id,
+        firstName: response.data.firstName || updatedStaff.firstName,
+        lastName: response.data.lastName || updatedStaff.lastName,
+        email: response.data.email || updatedStaff.email,
+        address: response.data.address || updatedStaff.address,
+        role: response.data.role || updatedStaff.role || 'Unknown',
+      };
       setStaff((prev) =>
-        prev.map((s) => (s.id === updatedStaff.id ? response.data : s))
+        prev.map((s) => (s.id === updatedStaff.id ? updatedStaffMember : s))
       );
       toast.success('Staff updated successfully');
     } catch (error: any) {
@@ -127,7 +152,6 @@ export const AdminStaffManagement: React.FC = () => {
           <div>
             <h3 className="text-xl font-semibold">{`${staff.firstName} ${staff.lastName}`}</h3>
             <p className="text-sm text-gray-500">{staff.email}</p>
-            <p className="text-sm text-gray-500">{staff.role}</p>
             {staff.address && <p className="text-sm text-gray-500">{staff.address}</p>}
           </div>
           <div className="flex gap-2">
@@ -184,7 +208,7 @@ export const AdminStaffManagement: React.FC = () => {
           email: selectedStaff.email,
           password: '',
           address: selectedStaff.address || '',
-          role: selectedStaff.role,
+          role: selectedStaff.role || '',
         });
       } else {
         setFormData({
@@ -201,7 +225,7 @@ export const AdminStaffManagement: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       const { firstName, lastName, email, password, address, role } = formData;
-      const payload = { firstName, lastName, email, address, role };
+      const payload = { firstName, lastName, email, address, role: role || undefined };
 
       if (mode === 'add') {
         if (!password) {
@@ -261,20 +285,6 @@ export const AdminStaffManagement: React.FC = () => {
               }
               disabled={isView}
             />
-            <select
-              className="w-full p-2 border border-gray-300 rounded"
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              disabled={isView}
-              required
-            >
-              <option value="">Select Role</option>
-              {roleOptions.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
             {!isView && mode === 'add' && (
               <div className="relative">
                 <Input

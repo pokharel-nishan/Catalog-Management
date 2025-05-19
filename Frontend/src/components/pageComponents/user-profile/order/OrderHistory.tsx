@@ -4,6 +4,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../../../../context/AuthContext';
 import apiClient from '../../../../api/config';
+import { Book } from 'lucide-react';
 
 interface BookType {
   id: string;
@@ -12,7 +13,7 @@ interface BookType {
   imageURL: string;
   price: number;
   quantity: number;
-  discount?: number;
+  discount?: number; 
 }
 
 interface Customer {
@@ -30,9 +31,8 @@ interface OrderType {
   status: string;
   items: BookType[];
   subtotal: number;
-  discount: number;
-  shippingCost: number;
-  tax: number;
+  discount: number; // Percentage
+  discountAmount: number; // Monetary amount
   total: number;
 }
 
@@ -43,14 +43,14 @@ interface AuthUser {
   lastName?: string;
 }
 
-const TABS = ["All", "Pending", "Ongoing", "Delivered", "Cancelled"] as const;
+const TABS = ["All", "Pending", "Ongoing", "Completed", "Cancelled"] as const;
 type TabType = typeof TABS[number];
 
 const STATE_MAP: Record<TabType, string | null> = {
   All: null,
   Pending: "Pending",
   Ongoing: "Ongoing",
-  Delivered: "Delivered",
+  Completed: "Completed",
   Cancelled: "Cancelled",
 };
 
@@ -67,9 +67,9 @@ const noOrdersData = {
     image: "/noorders.png",
     message: "There are currently no orders ready for pickup.",
   },
-  Delivered: {
+  Completed: {
     image: "/noorder.png",
-    message: "No orders have been delivered yet.",
+    message: "No orders have been Completed yet.",
   },
   Cancelled: {
     image: "/noorders.png",
@@ -109,34 +109,40 @@ const MyOrders: React.FC = () => {
         console.log("API Response for /Order/user-orders:", response.data);
 
         if (response.data.success) {
-          const fetchedOrders = response.data.orders.map((order: any) => ({
-            id: order.orderId || "N/A",
-            code: order.claimCode || order.orderId || "N/A",
-            trackingId: order.trackingId || "N/A",
-            orderDate: order.orderDate || new Date().toISOString(),
-            customer: {
-              firstName: user.name || "Unknown",
-              lastName: user.lastName || "User",
-              email: user.email || "N/A",
-            },
-            status: order.status || "Pending",
-            items: Array.isArray(order.items)
-              ? order.items.map((item: any) => ({
-                  id: item.bookId || "unknown",
-                  title: item.title || "Untitled",
-                  author: item.author || "Unknown Author",
-                  imageURL: item.imageUrl || "",
-                  price: item.unitPrice || (item.subtotal / (item.quantity || 1)) || 0,
-                  quantity: item.quantity || 1,
-                  discount: item.discount || 0,
-                }))
-              : [],
-            subtotal: order.totalPrice || order.subtotal || 0,
-            discount: order.discount || 0,
-            shippingCost: order.shippingCost || 50.00,
-            tax: order.tax || 0,
-            total: order.totalPrice || 0,
-          }));
+          const fetchedOrders = response.data.orders.map((order: any) => {
+            const items = Array.isArray(order.items)
+              ? order.items.map((item: any) => {
+                  console.log(`Item imageUrl for ${item.title || 'Untitled'}:`, item.imageUrl); // Debug log
+                  return {
+                    id: item.bookId || "unknown",
+                    title: item.title || "Untitled",
+                    author: item.author || "Unknown Author",
+                    imageURL: item.imageURl || "",
+                    price: item.unitPrice || (item.subtotal / (item.quantity || 1)) || 0,
+                    quantity: item.quantity || 1,
+                    discount: item.discount || 0,
+                  };
+                })
+              : [];
+            return {
+              id: order.orderId || "N/A",
+              code: order.claimCode || order.orderId || "N/A",
+              trackingId: order.orderId || "N/A",
+              orderDate: order.orderDate || new Date().toISOString(),
+              customer: {
+                firstName: user.name || "Unknown",
+                lastName: user.lastName || "User",
+                email: user.email || "N/A",
+              },
+              status: order.status || "Pending",
+              items,
+              subtotal: order.subTotal || order.subtotal || 0,
+              discount: order.discount || 0,
+              discountAmount: (order.subTotal - order.totalPrice) || 0,
+              total: order.totalPrice || 0,
+            };
+          });
+          console.log("Mapped orders:", fetchedOrders); // Debug log
           setOrders(fetchedOrders);
         } else {
           throw new Error(response.data.message || "Failed to fetch orders");
@@ -177,32 +183,35 @@ const MyOrders: React.FC = () => {
 
       if (response.data.success) {
         const order = response.data.order || {};
-        const detailedOrder: OrderType = {
-          id: order.orderId || searchQuery.trim(),
-          code: order.claimCode || order.orderId || "N/A",
-          trackingId: order.trackingId || "N/A",
-          orderDate: order.orderDate || new Date().toISOString(),
-          customer: order.customer || {
-            firstName: "Unknown",
-            lastName: "User",
-            email: "N/A",
-          },
-          status: order.status || "Pending",
-          items: Array.isArray(order.items)
-            ? order.items.map((item: any) => ({
+        const items = Array.isArray(order.items)
+          ? order.items.map((item: any) => {
+              console.log(`Searched item imageUrl for ${item.title || 'Untitled'}:`, item.imageUrl); // Debug log
+              return {
                 id: item.bookId || item.id || "unknown",
                 title: item.title || item.bookTitle || "Untitled",
                 author: item.author || "Unknown Author",
-                imageURL: item.imageUrl || "",
+                imageURL: item.imageURl || "",
                 price: item.unitPrice || (item.subtotal / (item.quantity || 1)) || 0,
                 quantity: item.quantity || 1,
                 discount: item.discount || 0,
-              }))
-            : [],
-          subtotal: order.totalPrice || order.subtotal || 0,
+              };
+            })
+          : [];
+        const detailedOrder: OrderType = {
+          id: order.orderId || searchQuery.trim(),
+          code: order.claimCode || order.orderId || "N/A",
+          trackingId: order.orderId || "N/A",
+          orderDate: order.orderDate || new Date().toISOString(),
+          customer: order.customer || {
+            firstName: user.name || "Unknown",
+            lastName: user.lastName || "User",
+            email: user.email || "N/A",
+          },
+          status: order.status || "Pending",
+          items,
+          subtotal: order.subTotal || order.subtotal || 0,
           discount: order.discount || 0,
-          shippingCost: order.shippingCost || 50.00,
-          tax: order.tax || 0,
+          discountAmount: (order.subTotal - order.totalPrice) || 0,
           total: order.totalPrice || 0,
         };
         setSearchResult(detailedOrder);
@@ -258,7 +267,7 @@ const MyOrders: React.FC = () => {
           <div>
             <h3
               className={`font-bold text-sm lg:text-base ${
-                order.status === "Delivered"
+                order.status === "Completed"
                   ? "text-green-600"
                   : order.status === "Cancelled"
                   ? "text-red-600"
@@ -266,7 +275,7 @@ const MyOrders: React.FC = () => {
               }`}
             >
               {order.status} ·{" "}
-              <span className="text-black">Order ID #{order.code}</span>
+              <span className="text-black">Order ID #{order.id}</span>
             </h3>
             <div className="flex flex-col lg:flex-row lg:space-x-8 text-xs lg:text-sm text-gray-500 mt-2">
               {order.orderDate && (
@@ -279,9 +288,9 @@ const MyOrders: React.FC = () => {
                   })}
                 </p>
               )}
-              {order.status === "Delivered" && order.orderDate && (
+              {order.status === "Completed" && order.orderDate && (
                 <p>
-                  Delivered on:{" "}
+                  Completed on:{" "}
                   {new Date(order.orderDate).toLocaleDateString("en-US", {
                     day: "2-digit",
                     month: "short",
@@ -302,29 +311,87 @@ const MyOrders: React.FC = () => {
             </div>
           </div>
           <div className="text-blue-600 font-bold text-lg lg:text-xl mt-2 lg:mt-0">
-            Rs. {order.total}
+            Rs. {order.total.toFixed(2)}
           </div>
         </div>
         <div className="mt-4">
-          {order.items.map((item, index) => (
-            <div key={index} className="flex flex-row justify-between py-2">
-              <div className="flex items-center space-x-4">
-                <img
-                  src={item.imageURL ? `http://localhost:5213${item.imageURL}` : "/images/default-book.jpg"}
-                  alt={item.title}
-                  className="w-12 h-12 lg:w-16 lg:h-16 object-cover"
-                />
-                <span className="text-primary text-sm lg:text-base">
-                  {item.title}
-                </span>
+          {order.items.map((item, index) => {
+            const discountedPrice =
+              item.discount && item.discount > 0
+                ? item.price * (1 - item.discount)
+                : item.price;
+            const totalPrice = discountedPrice * item.quantity;
+
+            return (
+              <div key={index} className="flex flex-row justify-between py-2">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-gray-100 flex-shrink-0 rounded overflow-hidden">
+                    {item.imageURL ? (
+                      <img
+                        src={`http://localhost:5213${item.imageURL}`}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.log(`Failed to load image for ${item.title}:`, item.imageURL);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="w-full h-full flex items-center justify-center"
+                      style={{ display: item.imageURL ? 'none' : 'flex' }}
+                    >
+                      <Book size={24} className="text-gray-400" />
+                    </div>
+                  </div>
+                  <span className="text-primary text-sm lg:text-base">
+                    {item.title}
+                  </span>
+                </div>
+                <div className="flex flex-row space-x-4 lg:space-x-8 text-xs lg:text-sm mt-2 lg:mt-0">
+                  <span>x{item.quantity}</span>
+                  <span>
+                    {item.discount && item.discount > 0 ? (
+                      <>
+                        <span className="text-orange-500">
+                          Rs. {discountedPrice.toFixed(2)}
+                        </span>
+                        <span className="text-gray-500 line-through ml-2">
+                          Rs. {item.price.toFixed(2)}
+                        </span>
+                      </>
+                    ) : (
+                      <span>Rs. {item.price.toFixed(2)}</span>
+                    )}
+                  </span>
+                  <span>Rs. {totalPrice.toFixed(2)}</span>
+                </div>
               </div>
-              <div className="flex flex-row space-x-4 lg:space-x-8 text-xs lg:text-sm mt-2 lg:mt-0">
-                <span>X{item.quantity}</span>
-                <span>Rs. {item.price}</span>
-                <span>Rs. {(item.price * item.quantity).toFixed(2)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+        <div className="mt-4 pt-4 border-t">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Subtotal</span>
+            <span>Rs. {order.subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm mt-2">
+            <span className="text-gray-600">Discount</span>
+            <span className="text-green-600">
+              {(order.discount * 100).toFixed(0)}%{" "}
+              <span className="text-red-400">(+ book discount)</span>
+            </span>
+          </div>
+          <div className="flex justify-between text-sm mt-2">
+            <span className="text-gray-600">Discount Amount</span>
+            <span className="text-green-600">
+              - Rs. {order.discountAmount.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex justify-between font-semibold text-base mt-4">
+            <span>Total</span>
+            <span>Rs. {order.total.toFixed(2)}</span>
+          </div>
         </div>
       </div>
     ));

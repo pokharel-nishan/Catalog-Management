@@ -1,6 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Heart, HeartIcon, ShoppingCart } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { useCart } from '../cart/CartContext';
+import { useAuth } from '../../../context/AuthContext';
+import apiClient from '../../../api/config';
+import { jwtDecode } from 'jwt-decode';
 
-// Define the Book interface
+// Minimal interface for API response books
+interface FeaturedBook {
+  bookId: string;
+  title: string;
+  author: string;
+  genre: string;
+  price: number;
+  discount: number;
+  imageURL: string;
+  inStock: boolean;
+  onSaleUntil: string | null;
+}
+
+// Extended Book interface for frontend, aligned with src/types/book.ts
 export interface Book {
   id: string;
   bookId: string;
@@ -25,7 +45,7 @@ export interface Book {
   discountEndDate: string | null;
   arrivalDate: string | null;
   rating: number;
-  voters: number | string;
+  voters: number | undefined; // Changed to number | undefined
   pages: number;
   location: string;
   reads: string;
@@ -35,513 +55,389 @@ export interface Book {
   category: string[];
 }
 
-// Seed data for books
-const books: Book[] = [
-  {
-    id: '1',
-    bookId: '1',
-    isbn: '978-602-424-694-5',
-    userId: '',
-    title: 'Garis Waktu',
-    author: 'Fiersa Besari',
-    publisher: 'Mediakita',
-    publicationDate: '1 Juli 2016',
-    publishedDate: '1 Juli 2016',
-    genre: 'Fiksi / Romance / Umum',
-    language: 'Indonesia',
-    format: 'Paperback',
-    description: "A heartfelt story of love and time, blending romance with deep emotional reflections.",
-    category: ['Biography', 'Inspiring', 'AutoBiography'],
-    price: 15.99,
-    stock: 100,
-    inStock: true,
-    imageURL: '/books/book3.png',
-    coverImage: '/books/book3.png',
-    rating: 4,
-    voters: 9800,
-    reads: '3.7M',
-    salePercentage: 10,
-    discount: 10,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 210,
-    location: 'Indonesia',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '2',
-    bookId: '2',
-    isbn: '978-014-044-926-6',
-    userId: '',
-    title: 'The Frolic of the Beasts',
-    author: 'Yukito Mishima',
-    publisher: 'Penguin Classics',
-    publicationDate: '15 April 2022',
-    publishedDate: '15 April 2022',
-    genre: 'Romance / Drama / Fiction',
-    language: 'English',
-    format: 'Paperback',
-    description: "A gripping tale of love, betrayal, and the consequences of unchecked desire.",
-    category: ['Romance', 'Drama', 'Classics'],
-    price: 19.99,
-    stock: 50,
-    inStock: true,
-    imageURL: '/books/book1.png',
-    coverImage: '/books/book1.png',
-    rating: 4.5,
-    voters: 3250,
-    reads: '1.2M',
-    salePercentage: 15,
-    discount: 15,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 176,
-    location: 'Japan',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '3',
-    bookId: '3',
-    isbn: '978-080-701-429-5',
-    userId: '',
-    title: "Man's Search For Meaning",
-    author: "Viktor E. Frankl",
-    publisher: 'Beacon Press',
-    publicationDate: '1 June 2006',
-    publishedDate: '1 June 2006',
-    genre: 'Non-fiction / Psychology / Philosophy',
-    language: 'English',
-    format: 'Paperback',
-    description: "A profound exploration of finding meaning in the face of unimaginable suffering.",
-    category: ['Philosophy', 'Psychology', 'Memoir'],
-    price: 21.99,
-    stock: 75,
-    inStock: true,
-    imageURL: '/books/book2.png',
-    coverImage: '/books/book2.png',
-    rating: 4.7,
-    voters: 14750,
-    reads: '8.3M',
-    salePercentage: 0,
-    discount: 0,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 184,
-    location: 'Austria',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '4',
-    bookId: '4',
-    isbn: '978-073-521-129-2',
-    userId: '',
-    title: "Where The Crawdads Sing",
-    author: "Delia Owens",
-    publisher: "G.P. Putnam's Sons",
-    publicationDate: '14 August 2018',
-    publishedDate: '14 August 2018',
-    genre: 'Fiction / Mystery / Coming-of-age',
-    language: 'English',
-    format: 'Hardcover',
-    description: "A beautifully written story of resilience, nature, and a young girl's journey.",
-    category: ['Fiction', 'Mystery', 'Coming-of-age'],
-    price: 18.50,
-    stock: 60,
-    inStock: true,
-    imageURL: '/books/book4.png',
-    coverImage: '/books/book4.png',
-    rating: 4.3,
-    voters: 8250,
-    reads: '5.4M',
-    salePercentage: 10,
-    discount: 10,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 384,
-    location: 'United States',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '5',
-    bookId: '5',
-    isbn: '978-073-521-910-6',
-    userId: '',
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    publisher: 'Avery',
-    publicationDate: '16 October 2018',
-    publishedDate: '16 October 2018',
-    genre: 'Non-fiction / Self-help / Productivity',
-    language: 'English',
-    format: 'Hardcover',
-    description: "A practical guide to building good habits and breaking bad ones through small changes.",
-    category: ['Self-help', 'Productivity', 'Psychology'],
-    price: 22.99,
-    stock: 80,
-    inStock: true,
-    imageURL: '/books/book5.png',
-    coverImage: '/books/book5.png',
-    rating: 4.8,
-    voters: 20100,
-    reads: '9.1M',
-    salePercentage: 20,
-    discount: 20,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 320,
-    location: 'United States',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '6',
-    bookId: '6',
-    isbn: '978-602-033-295-6',
-    userId: '',
-    title: 'Laut Bercerita',
-    author: 'Leila S. Chudori',
-    publisher: 'Kepustakaan Populer Gramedia',
-    publicationDate: '30 November 2017',
-    publishedDate: '30 November 2017',
-    genre: 'Fiksi / Sejarah / Politik',
-    language: 'Indonesia',
-    format: 'Paperback',
-    description: "A moving historical fiction about activism and injustice in Indonesia's reform era.",
-    category: ['Historical', 'Drama', 'Indonesia'],
-    price: 17.50,
-    stock: 45,
-    inStock: true,
-    imageURL: '/books/book6.png',
-    coverImage: '/books/book6.png',
-    rating: 4.6,
-    voters: 4300,
-    reads: '2.8M',
-    salePercentage: 5,
-    discount: 5,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 379,
-    location: 'Indonesia',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '7',
-    bookId: '7',
-    isbn: '978-037-570-402-4',
-    userId: '',
-    title: 'Norwegian Wood',
-    author: 'Haruki Murakami',
-    publisher: 'Vintage',
-    publicationDate: '4 September 2000',
-    publishedDate: '4 September 2000',
-    genre: 'Fiction / Romance / Psychological',
-    language: 'English',
-    format: 'Paperback',
-    description: "A nostalgic tale of love, loss, and coming of age in 1960s Japan.",
-    category: ['Romance', 'Drama', 'Psychological'],
-    price: 18.99,
-    stock: 55,
-    inStock: true,
-    imageURL: '/books/book7.png',
-    coverImage: '/books/book7.png',
-    rating: 4.4,
-    voters: 11000,
-    reads: '6.7M',
-    salePercentage: 0,
-    discount: 0,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 296,
-    location: 'Japan',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '8',
-    bookId: '8',
-    isbn: '978-039-959-050-4',
-    userId: '',
-    title: 'Educated',
-    author: 'Tara Westover',
-    publisher: 'Random House',
-    publicationDate: '20 February 2018',
-    publishedDate: '20 February 2018',
-    genre: 'Non-fiction / Memoir / Biography',
-    language: 'English',
-    format: 'Hardcover',
-    description: "A memoir of a woman who transforms her life through education despite a challenging upbringing.",
-    category: ['Memoir', 'Biography', 'Inspiring'],
-    price: 20.00,
-    stock: 65,
-    inStock: true,
-    imageURL: '/books/book8.png',
-    coverImage: '/books/book8.png',
-    rating: 4.7,
-    voters: 12900,
-    reads: '7.9M',
-    salePercentage: 10,
-    discount: 10,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 352,
-    location: 'United States',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '9',
-    bookId: '9',
-    isbn: '978-602-031-278-1',
-    userId: '',
-    title: 'Pulang',
-    author: 'Leila S. Chudori',
-    publisher: 'Kepustakaan Populer Gramedia',
-    publicationDate: '13 Mei 2012',
-    publishedDate: '13 Mei 2012',
-    genre: 'Fiksi / Sejarah / Sosial',
-    language: 'Indonesia',
-    format: 'Paperback',
-    description: "A historical novel about a family facing political exile in Indonesia.",
-    category: ['Historical', 'Drama', 'Indonesia'],
-    price: 16.75,
-    stock: 40,
-    inStock: true,
-    imageURL: '/books/book9.png',
-    coverImage: '/books/book9.png',
-    rating: 4.5,
-    voters: 5000,
-    reads: '3.5M',
-    salePercentage: 5,
-    discount: 5,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 464,
-    location: 'Indonesia',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '10',
-    bookId: '10',
-    isbn: '978-006-231-500-7',
-    userId: '',
-    title: 'The Alchemist',
-    author: 'Paulo Coelho',
-    publisher: 'HarperOne',
-    publicationDate: '1 April 1993',
-    publishedDate: '1 April 1993',
-    genre: 'Fiction / Inspirational',
-    language: 'English',
-    format: 'Paperback',
-    description: "A magical story of a young shepherd's journey to find a hidden treasure, teaching lessons of purpose and destiny.",
-    category: ['Fiction', 'Inspirational', 'Adventure'],
-    price: 16.99,
-    stock: 90,
-    inStock: true,
-    imageURL: '/books/book10.png',
-    coverImage: '/books/book10.png',
-    rating: 4.6,
-    voters: 18000,
-    reads: '10M',
-    salePercentage: 0,
-    discount: 0,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 208,
-    location: 'Brazil',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '11',
-    bookId: '11',
-    isbn: '978-006-112-008-4',
-    userId: '',
-    title: 'To Kill a Mockingbird',
-    author: 'Harper Lee',
-    publisher: 'J.B. Lippincott & Co.',
-    publicationDate: '11 July 1960',
-    publishedDate: '11 July 1960',
-    genre: 'Fiction / Classics',
-    language: 'English',
-    format: 'Hardcover',
-    description: "A powerful story of racial injustice and the loss of innocence in a small Southern town.",
-    category: ['Fiction', 'Classics', 'Social Issues'],
-    price: 14.99,
-    stock: 70,
-    inStock: true,
-    imageURL: '/books/book11.png',
-    coverImage: '/books/book11.png',
-    rating: 4.8,
-    voters: 22000,
-    reads: '12M',
-    salePercentage: 0,
-    discount: 0,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 281,
-    location: 'United States',
-    isNewRelease: false,
-    isComingSoon: false,
-  },
-  {
-    id: '12',
-    bookId: '12',
-    isbn: '978-059-333-682-3',
-    userId: '',
-    title: 'The Midnight Library',
-    author: 'Matt Haig',
-    publisher: 'Viking',
-    publicationDate: '29 December 2025',
-    publishedDate: '29 December 2025',
-    genre: 'Fiction / Fantasy',
-    language: 'English',
-    format: 'Hardcover',
-    description: "A woman discovers a magical library that allows her to explore the lives she could have lived.",
-    category: ['Fiction', 'Fantasy', 'Self-discovery'],
-    price: 24.99,
-    stock: 0,
-    inStock: false,
-    imageURL: '/books/book12.png',
-    coverImage: '/books/book12.png',
-    rating: 0,
-    voters: 0,
-    reads: '0',
-    salePercentage: 0,
-    discount: 0,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: '29 December 2025',
-    pages: 304,
-    location: 'United Kingdom',
-    isNewRelease: false,
-    isComingSoon: true,
-  },
-  {
-    id: '13',
-    bookId: '13',
-    isbn: '978-125-082-765-4',
-    userId: '',
-    title: 'The Future of Us',
-    author: 'Naomi Alderman',
-    publisher: 'Flatiron Books',
-    publicationDate: '10 May 2025',
-    publishedDate: '10 May 2025',
-    genre: 'Fiction / Sci-Fi',
-    language: 'English',
-    format: 'Hardcover',
-    description: "A speculative novel exploring the impact of technology on humanity's future.",
-    category: ['Fiction', 'Sci-Fi', 'Technology'],
-    price: 27.99,
-    stock: 30,
-    inStock: true,
-    imageURL: '/books/book13.png',
-    coverImage: '/books/book13.png',
-    rating: 4.2,
-    voters: 1500,
-    reads: '500K',
-    salePercentage: 10,
-    discount: 10,
-    discountStartDate: null,
-    discountEndDate: null,
-    arrivalDate: null,
-    pages: 352,
-    location: 'United Kingdom',
-    isNewRelease: true,
-    isComingSoon: false,
-  },
-];
+// API response interface
+interface FeaturedBooksResponse {
+  newArrivals: FeaturedBook[];
+  newReleases: FeaturedBook[];
+  topSales: FeaturedBook[];
+  bestSellers: FeaturedBook[];
+  comingSoon: FeaturedBook[];
+}
 
-// Define filtering functions
-const getTopDeals = (): Book[] => {
-  return books
-    .filter((book) => book.salePercentage && book.salePercentage > 0)
-    .sort((a, b) => (b.salePercentage || 0) - (a.salePercentage || 0))
-    .slice(0, 6);
-};
+// Review DTO for fetching reviews
+interface ReviewDTO {
+  reviewId: string;
+  username: string;
+  createdAt: string | Date;
+  content: string;
+  rating: number;
+}
 
-const getBestSellers = (): Book[] => {
-  return [...books]
-    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-    .slice(0, 6);
-};
+// Decoded token interface
+interface DecodedToken {
+  exp: number;
+  sub?: string;
+  nameid?: string;
+}
 
-const getNewArrivals = (): Book[] => {
-  const today = new Date("2025-05-14T12:00:00+0545"); // Updated to current date and time
-  return books
-    .filter((book) => {
-      const pubDate = new Date(book.publishedDate || "");
-      const daysSincePub = (today.getTime() - pubDate.getTime()) / (1000 * 60 * 60 * 24);
-      return daysSincePub <= 30 || book.isNewRelease;
-    })
-    .slice(0, 6);
-};
-
-const getNewReleases = (): Book[] => {
-  return books
-    .filter((book) => book.isNewRelease)
-    .slice(0, 6);
-};
-
-const getComingSoon = (): Book[] => {
-  return books
-    .filter((book) => book.isComingSoon)
-    .slice(0, 6);
-};
-
-// Render star ratings based on book's rating
-const renderStars = (book: Book) => {
-  const rating = book.rating || 0;
-  const voters = book.voters || 0;
-  return (
-    <div className="flex items-center">
-      {[...Array(5)].map((_, i) => (
-        <svg
-          key={i}
-          className={`w-4 h-4 ${i < Math.floor(rating) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-      <span className="text-gray-400 ml-2 text-xs font-light">
-        ({voters} {parseInt(voters.toString()) === 1 ? "voter" : "voters"})
-      </span>
-    </div>
-  );
-};
+// Map FeaturedBook to Book interface
+const mapToBook = (book: FeaturedBook, section: keyof FeaturedBooksResponse): Book => ({
+  id: book.bookId,
+  bookId: book.bookId,
+  isbn: '',
+  userId: '',
+  title: book.title,
+  author: book.author,
+  publisher: 'Unknown',
+  publicationDate: book.onSaleUntil || new Date().toISOString(),
+  publishedDate: book.onSaleUntil || new Date().toISOString(),
+  genre: book.genre,
+  language: 'Unknown',
+  format: 'Unknown',
+  description: 'No description available.',
+  category: book.genre.split('/').map((g) => g.trim()),
+  price: book.price,
+  stock: book.inStock ? 50 : 0,
+  inStock: section === 'comingSoon' ? false : book.inStock,
+  imageURL: `http://localhost:5213${book.imageURL}`,
+  coverImage: `http://localhost:5213${book.imageURL}`,
+  rating: 0,
+  voters: 0, // Set as number
+  reads: '0',
+  salePercentage: book.discount,
+  discount: book.discount,
+  discountStartDate: null,
+  discountEndDate: book.onSaleUntil,
+  arrivalDate: section === 'comingSoon' ? book.onSaleUntil : null,
+  pages: 0,
+  location: 'Unknown',
+  isNewRelease: section === 'newReleases' || section === 'newArrivals',
+  isComingSoon: section === 'comingSoon',
+});
 
 // HomeComponent with BookCard design
 const HomeComponent: React.FC = () => {
   const [likedBooks, setLikedBooks] = useState<{ [key: string]: boolean }>({});
+  const [bookRatings, setBookRatings] = useState<{
+    [key: string]: { rating: number; voters: number }; // Changed voters to number
+  }>({});
+  const [justClicked, setJustClicked] = useState<string | null>(null);
+  const [featuredBooks, setFeaturedBooks] = useState<FeaturedBooksResponse>({
+    newArrivals: [],
+    newReleases: [],
+    topSales: [],
+    bestSellers: [],
+    comingSoon: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock wishlist toggle functionality
-  const handleWishlistClick = (bookId: string) => {
-    setLikedBooks((prev) => ({
-      ...prev,
-      [bookId]: !prev[bookId],
-    }));
+  const { user, logout } = useAuth();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
+  const isAuthenticated = !!user;
+
+  // Check if token is expired
+  const isTokenExpired = (token: string): boolean => {
+    try {
+      const decoded: DecodedToken = jwtDecode(token);
+      const currentTime = Math.floor(Date.now() / 1000);
+      return decoded.exp < currentTime;
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return true;
+    }
+  };
+
+  // Fetch featured books
+  useEffect(() => {
+    const fetchFeaturedBooks = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await apiClient.get('/Book/featured', { headers });
+        if (response.data) {
+          setFeaturedBooks(response.data);
+        } else {
+          throw new Error('No data returned from API');
+        }
+      } catch (error: any) {
+        console.error('Failed to fetch featured books:', error);
+        toast.error(error.response?.data?.message || 'Failed to load books');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedBooks();
+  }, []);
+
+  // Fetch reviews and bookmarks for all books
+  useEffect(() => {
+    const fetchReviewsAndBookmarks = async () => {
+      const allBooks = [
+        ...featuredBooks.newArrivals,
+        ...featuredBooks.newReleases,
+        ...featuredBooks.topSales,
+        ...featuredBooks.bestSellers,
+        ...featuredBooks.comingSoon,
+      ].map((book) => mapToBook(book, 'bestSellers')); // Section doesn't matter for reviews/bookmarks
+
+      if (allBooks.length === 0) return;
+
+      try {
+        // Fetch reviews
+        const reviewPromises = allBooks.map((book) => {
+          const bookId = book.bookId || book.id;
+          if (!bookId) {
+            console.error(`Book ID is undefined for book: ${book.title}`);
+            return Promise.resolve({ bookId, reviews: [] });
+          }
+          return apiClient
+            .get(`/Review/book/${bookId}`)
+            .then((res) => ({
+              bookId,
+              reviews: res.data.success ? res.data.reviews || [] : [],
+            }))
+            .catch((error) => {
+              console.error(`Failed to fetch reviews for book ${bookId}:`, error);
+              return { bookId, reviews: [] };
+            });
+        });
+
+        const reviewResults = await Promise.all(reviewPromises);
+        const ratingsMap = reviewResults.reduce((acc, { bookId, reviews }) => {
+          if (bookId) {
+            const voterCount = reviews.length;
+            const averageRating =
+              voterCount > 0
+                ? reviews.reduce((sum: number, review: ReviewDTO) => sum + review.rating, 0) /
+                  voterCount
+                : 0;
+            acc[bookId] = {
+              rating: averageRating,
+              voters: voterCount, // Store as number
+            };
+          }
+          return acc;
+        }, {} as { [key: string]: { rating: number; voters: number } });
+        setBookRatings(ratingsMap);
+
+        // Fetch bookmarks if authenticated
+        if (isAuthenticated) {
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          if (token && isTokenExpired(token)) {
+            toast.error('Session expired during bookmark check. Logging out.');
+            logout();
+            navigate('/login');
+            return;
+          }
+
+          const bookmarkChecks = await Promise.all(
+            allBooks.map((book) => {
+              const bookId = book.bookId || book.id;
+              if (!bookId) {
+                console.error(`Book ID is undefined for book: ${book.title}`);
+                return { bookId, isBookmarked: false };
+              }
+              return apiClient
+                .get(`/Bookmark/check/${bookId}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                })
+                .then((res) => ({
+                  bookId,
+                  isBookmarked: res.data.isBookmarked || false,
+                }))
+                .catch((error: any) => {
+                  console.error(`Failed to fetch bookmark status for book ${bookId}:`, error);
+                  if (error.response?.status === 401) {
+                    toast.error('Session expired during bookmark check. Logging out.');
+                    logout();
+                    navigate('/login');
+                  }
+                  return { bookId, isBookmarked: false };
+                });
+            })
+          );
+          const initialLikedBooks = bookmarkChecks.reduce(
+            (acc, { bookId, isBookmarked }) => {
+              if (bookId) acc[bookId] = isBookmarked;
+              return acc;
+            },
+            {} as { [key: string]: boolean }
+          );
+          setLikedBooks(initialLikedBooks);
+        }
+      } catch (error: any) {
+        console.error('Unexpected error in fetchReviewsAndBookmarks:', error);
+        if (error.response?.status === 401) {
+          toast.error('Session expired during bookmark check. Logging out.');
+          logout();
+          navigate('/login');
+        }
+      }
+    };
+
+    if (
+      featuredBooks.newArrivals.length > 0 ||
+      featuredBooks.newReleases.length > 0 ||
+      featuredBooks.topSales.length > 0 ||
+      featuredBooks.bestSellers.length > 0 ||
+      featuredBooks.comingSoon.length > 0
+    ) {
+      fetchReviewsAndBookmarks();
+    }
+  }, [featuredBooks, isAuthenticated, logout, navigate]);
+
+  // Handle wishlist toggle
+  const handleWishlistClick = async (bookId: string) => {
+    if (!isAuthenticated) {
+      toast.error('Please log in to add to wishlist!');
+      navigate('/login');
+      return;
+    }
+
+    if (!bookId) {
+      console.error(`Invalid bookId: ${bookId}`);
+      toast.error('Invalid book ID. Unable to update wishlist.');
+      return;
+    }
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token || isTokenExpired(token)) {
+      toast.error('Session expired or no token. Please log in again.');
+      logout();
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await apiClient.post(
+        `/Bookmark/toggle/${bookId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (response.data.success) {
+        setLikedBooks((prev) => ({
+          ...prev,
+          [bookId]: !prev[bookId],
+        }));
+        setJustClicked(bookId);
+      } else {
+        toast.error('Failed to update wishlist. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Failed to toggle bookmark:', error);
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        logout();
+        navigate('/login');
+      } else {
+        toast.error('Failed to update wishlist. Please try again.');
+      }
+    }
+  };
+
+  // Show toast for wishlist actions
+  useEffect(() => {
+    if (justClicked) {
+      const isNowLiked = likedBooks[justClicked];
+      if (isNowLiked) {
+        toast.success('Book added to wishlist!');
+      } else {
+        toast.info('Book removed from wishlist.');
+      }
+      setJustClicked(null);
+    }
+  }, [likedBooks, justClicked]);
+
+  // Handle add to cart
+  const handleAddToCart = (book: Book) => {
+    if (!isAuthenticated) {
+      toast.error('Please log in to add to cart!');
+      navigate('/login');
+      return;
+    }
+    if (book.isComingSoon) {
+      toast.error('This book is coming soon and not yet available');
+      return;
+    }
+    if (!book.inStock) {
+      toast.error('This book is out of stock');
+      return;
+    }
+    addToCart(book);
+    toast.success(`${book.title} added to cart!`);
+  };
+
+  // Define filtering functions using API data
+  const getTopDeals = (): Book[] => {
+    return featuredBooks.topSales
+      .filter((book) => book.discount > 0)
+      .map((book) => mapToBook(book, 'topSales'))
+      .sort((a, b) => b.discount - a.discount)
+      .slice(0, 6);
+  };
+
+  const getBestSellers = (): Book[] => {
+    return featuredBooks.bestSellers
+      .map((book) => mapToBook(book, 'bestSellers'))
+      .slice(0, 6);
+  };
+
+  const getNewArrivals = (): Book[] => {
+    return featuredBooks.newArrivals
+      .map((book) => mapToBook(book, 'newArrivals'))
+      .slice(0, 6);
+  };
+
+  const getNewReleases = (): Book[] => {
+    return featuredBooks.newReleases
+      .map((book) => mapToBook(book, 'newReleases'))
+      .slice(0, 6);
+  };
+
+  const getComingSoon = (): Book[] => {
+    return featuredBooks.comingSoon
+      .map((book) => mapToBook(book, 'comingSoon'))
+      .slice(0, 6);
+  };
+
+  // Render star ratings based on fetched reviews
+  const renderStars = (bookId: string) => {
+    const { rating = 0, voters = 0 } = bookRatings[bookId] || {};
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, i) => (
+          <svg
+            key={i}
+            className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            data-testid={i < Math.floor(rating) ? 'star-filled' : 'star-empty'}
+          >
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        ))}
+        <span className="text-gray-400 ml-2 text-xs font-light">
+          ({voters} {voters === 1 ? 'voter' : 'voters'})
+        </span>
+      </div>
+    );
   };
 
   // Helper to render a section of books
   const renderSection = (title: string, sectionBooks: Book[]) => {
+    if (isLoading) {
+      return (
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">{title}</h2>
+          <div className="text-gray-600 p-4">Loading books...</div>
+        </section>
+      );
+    }
+
     if (sectionBooks.length === 0) {
       return (
         <section className="mb-8">
@@ -552,12 +448,19 @@ const HomeComponent: React.FC = () => {
     }
 
     return (
-      <section className="mb-8">
+      <section className="mb-8 mx-6 lg:mx-16">
         <h2 className="text-2xl font-bold mb-4">{title}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-16 p-4">
           {sectionBooks.map((book) => {
-            const isOutOfStock = !book.inStock;
+            const isOutOfStock = title === 'Coming Soon' ? true : !book.inStock;
             const bookId = book.bookId || book.id;
+            if (!bookId) {
+              console.error(`Book ID is undefined for book: ${book.title}`);
+              return null;
+            }
+
+            const discountedPrice =
+              book.discount > 0 ? book.price * (1 - book.discount) : book.price;
 
             return (
               <div
@@ -572,85 +475,78 @@ const HomeComponent: React.FC = () => {
                 {/* Content */}
                 <div className="flex w-full relative pt-6 z-10">
                   <div className="w-1/3 overflow-hidden">
-                    <div>
+                    <Link to={`/books/${bookId}`}>
                       <img
                         src={book.imageURL}
                         alt={book.title}
-                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="w-full h-56 object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       {book.discount > 0 && (
                         <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                          {(book.discount).toFixed(0)}% OFF
+                          {(book.discount * 100).toFixed(0)}% OFF
                         </div>
                       )}
                       {isOutOfStock && (
                         <div className="absolute top-12 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                          Out of Stock
+                          {title === 'Coming Soon' ? 'Coming Soon' : 'Out of Stock'}
                         </div>
                       )}
-                    </div>
+                    </Link>
                   </div>
 
                   <div className="w-2/3 pl-8 flex flex-col p-4">
-                    <div className="flex flex-col gap-1">
-                      <h1 className="text-xl font-bold line-clamp-1">
-                        {book.title}
-                      </h1>
+                    <Link to={`/books/${bookId}`} className="flex flex-col gap-1">
+                      <h1 className="text-xl font-bold line-clamp-1">{book.title}</h1>
                       <p className="text-lg text-gray-600">By {book.author}</p>
-                      <div className="mt-2">{renderStars(book)}</div>
+                      <div className="mt-2">{renderStars(bookId)}</div>
                       <p className="text-xs text-gray-400 line-clamp-3 mt-2">
-                        {book.description || "No description available."}
+                        {book.description}
                       </p>
-                    </div>
+                      <p className="text-base text-gray-800 line-clamp-3 mt-2">
+                        {book.discount > 0 ? (
+                          <>
+                            <span className="text-orange-500">${discountedPrice.toFixed(2)}</span>
+                            <span className="text-gray-500 line-through ml-2">
+                              ${book.price.toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          <span>${book.price.toFixed(2)}</span>
+                        )}
+                      </p>
+                    </Link>
 
                     <div className="mt-auto flex items-center justify-between gap-2">
                       {!isOutOfStock ? (
                         <button
+                          onClick={() => handleAddToCart(book)}
                           className="mt-2 w-full py-3 rounded-lg flex items-center justify-center gap-2 transition-colors bg-orange-400 text-white hover:bg-orange-500"
                           aria-label="Add to Cart"
                         >
-                          <span>Add to Cart</span>
+                          <ShoppingCart size={20} />
+                          Add to Cart
                         </button>
                       ) : (
                         <button
                           disabled
                           className="mt-2 w-full py-3 rounded-lg flex items-center justify-center gap-2 bg-gray-300 text-gray-500 cursor-not-allowed"
-                          aria-label="Out of Stock"
+                          aria-label={title === 'Coming Soon' ? 'Coming Soon' : 'Out of Stock'}
                         >
-                          Out of Stock
+                          {title === 'Coming Soon' ? 'Coming Soon' : 'Out of Stock'}
                         </button>
                       )}
                       <button
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                         onClick={() => handleWishlistClick(bookId)}
                         aria-label={
-                          likedBooks[bookId]
-                            ? "Remove from Wishlist"
-                            : "Add to Wishlist"
+                          likedBooks[bookId] ? 'Remove from Wishlist' : 'Add to Wishlist'
                         }
+                        data-testid="wishlist-icon"
                       >
                         {likedBooks[bookId] ? (
-                          <svg
-                            className="w-6 h-6 text-orange-400 transition-colors"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                          </svg>
+                          <HeartIcon className="w-6 h-6 text-orange-400 transition-colors" />
                         ) : (
-                          <svg
-                            className="w-6 h-6 text-gray-400 hover:text-orange-400 transition-colors"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                            />
-                          </svg>
+                          <Heart className="w-6 h-6 text-gray-400 hover:text-orange-400 transition-colors" />
                         )}
                       </button>
                     </div>
@@ -666,11 +562,11 @@ const HomeComponent: React.FC = () => {
 
   return (
     <div className="p-4">
-      {renderSection("Top Deals", getTopDeals())}
-      {renderSection("Best Sellers", getBestSellers())}
-      {renderSection("New Arrivals", getNewArrivals())}
-      {renderSection("New Releases", getNewReleases())}
-      {renderSection("Coming Soon", getComingSoon())}
+      {renderSection('Top Deals', getTopDeals())}
+      {renderSection('Best Sellers', getBestSellers())}
+      {renderSection('New Arrivals', getNewArrivals())}
+      {renderSection('New Releases', getNewReleases())}
+      {renderSection('Coming Soon', getComingSoon())}
     </div>
   );
 };
