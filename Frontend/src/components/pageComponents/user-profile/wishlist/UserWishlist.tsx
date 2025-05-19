@@ -270,19 +270,6 @@ const UserWishlist = () => {
                       {book.title}
                     </h3>
                     <p className="text-sm text-gray-500">by {book.author}</p>
-                    <div className="flex items-center mt-2">
-                      <span className="text-yellow-500">
-                        {"★".repeat(book.rating ?? 0)}
-                      </span>
-                      <span className="ml-2 text-gray-400">
-                        ({book.voters ?? 0} votes)
-                      </span>
-                    </div>
-                    <div className="flex items-center mt-2">
-                      <span className="text-lg font-bold text-primary">
-                        ${book.price ?? "N/A"}
-                      </span>
-                    </div>
                     <p className="text-xs text-gray-400 mt-1">
                       Added on: {new Date(book.createdAt).toLocaleDateString()}
                     </p>

@@ -21,7 +21,7 @@ interface BookType {
   coverImage: string;
   price: number;
   quantity: number;
-  discount?: number;
+  discount?: number; // Percentage (e.g., 0.2 for 20%)
 }
 
 interface Customer {
@@ -39,8 +39,9 @@ interface OrderType {
   status: string;
   orderedBooks: BookType[];
   subtotal: number;
-  discount: number;
+  discount: number; // Monetary amount
   total: number;
+  discountAmount: number
 }
 
 interface AuthUser {
@@ -79,35 +80,55 @@ const OrderStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-const BookItem: React.FC<{ book: BookType }> = ({ book }) => (
-  <div className="flex items-center gap-4 border-b pb-4 mb-4 last:border-b-0 last:mb-0 last:pb-0 transition-all hover:bg-gray-50 p-2 rounded">
-    <div className="w-16 h-24 bg-gray-100 flex-shrink-0 rounded overflow-hidden">
-      {book.coverImage ? (
-        <img
-          src={`http://localhost:5213${book.coverImage}`}
-          alt={book.title}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <Book size={24} className="text-gray-400" />
+const BookItem: React.FC<{ book: BookType }> = ({ book }) => {
+  const discountedPrice = book.discount && book.discount > 0
+    ? book.price * (1 - book.discount)
+    : book.price;
+  const totalPrice = discountedPrice * book.quantity;
+
+  return (
+    <div className="flex items-center gap-4 border-b pb-4 mb-4 last:border-b-0 last:mb-0 last:pb-0 transition-all hover:bg-gray-50 p-2 rounded">
+      <div className="w-16 h-24 bg-gray-100 flex-shrink-0 rounded overflow-hidden">
+        {book.coverImage ? (
+          <img
+            src={`http://localhost:5213${book.coverImage}`}
+            alt={book.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Book size={24} className="text-gray-400" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1">
+        <h3 className="font-medium text-gray-800">{book.title}</h3>
+        <p className="text-sm text-gray-600">{book.author || "Unknown Author"}</p>
+        <div className="flex justify-between items-center mt-2">
+          <span className="text-sm bg-gray-100 px-2 py-1 rounded-full">
+            Qty: {book.quantity}
+          </span>
+          <div className="text-right">
+            {book.discount && book.discount > 0 ? (
+              <div>
+                <span className="text-orange-500 font-medium">
+                  Rs {discountedPrice.toFixed(2)} x {book.quantity} = Rs {totalPrice.toFixed(2)}
+                </span>
+                <span className="text-gray-500 line-through ml-2">
+                  Rs {book.price.toFixed(2)}
+                </span>
+              </div>
+            ) : (
+              <span className="font-medium">
+                Rs {book.price.toFixed(2)} x {book.quantity} = Rs {totalPrice.toFixed(2)}
+              </span>
+            )}
+          </div>
         </div>
-      )}
-    </div>
-    <div className="flex-1">
-      <h3 className="font-medium text-gray-800">{book.title}</h3>
-      <p className="text-sm text-gray-600">{book.author || "Unknown Author"}</p>
-      <div className="flex justify-between mt-2">
-        <span className="text-sm bg-gray-100 px-2 py-1 rounded-full">
-          Qty: {book.quantity}
-        </span>
-        <span className="font-medium">
-          Rs {(book.price * book.quantity).toFixed(2)}
-        </span>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -155,7 +176,7 @@ const OrderConfirmation: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("Response from /Order/{orderId}:", response.data); // Debug: Log response
+        console.log("Response from /Order/{orderId}:", response.data);
 
         if (response.data.success) {
           const fetchedOrder = response.data.order || {};
@@ -164,7 +185,11 @@ const OrderConfirmation: React.FC = () => {
             code: fetchedOrder.claimCode || "N/A",
             trackingId: fetchedOrder.trackingId || "N/A",
             orderDate: fetchedOrder.orderDate || new Date().toISOString(),
-            customer: fetchedOrder.customer || { firstName: "Unknown", lastName: "User", email: "N/A" },
+            customer: fetchedOrder.customer || {
+              firstName: "Unknown",
+              lastName: "User",
+              email: "N/A",
+            },
             status: fetchedOrder.status || "Pending",
             orderedBooks: Array.isArray(fetchedOrder.items)
               ? fetchedOrder.items.map((item: any) => ({
@@ -174,12 +199,14 @@ const OrderConfirmation: React.FC = () => {
                   coverImage: item.imageUrl,
                   price: item.price || item.unitPrice || 0,
                   quantity: item.quantity || 1,
-                  discount: item.discount || 0,
+                  discount: item.discount || 0, // Percentage (e.g., 0.2 for 20%)
                 }))
               : [],
-            subtotal: fetchedOrder.subtotal || fetchedOrder.totalPrice || 0,
-            discount: fetchedOrder.discount || 0,
-            total: fetchedOrder.total || fetchedOrder.totalPrice || 0,
+            subtotal: fetchedOrder.subTotal || 0,
+             discount: fetchedOrder.discount,
+              discountAmount: (fetchedOrder.subTotal - fetchedOrder.totalPrice) || 0,
+           
+            total: fetchedOrder.totalPrice || 0,
           };
           setOrder(transformedOrder);
         } else {
@@ -198,7 +225,7 @@ const OrderConfirmation: React.FC = () => {
 
   const handleCheckout = async () => {
     if (!order) return;
-  
+
     try {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       if (!token) {
@@ -207,19 +234,19 @@ const OrderConfirmation: React.FC = () => {
         navigate("/login");
         return;
       }
-  
+
       const response = await apiClient.post(
         `/Order/confirm-order/${order.id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-  
+
       if (response.data.success) {
         const updatedOrder: OrderType = { ...order, status: "Ongoing" };
         setOrder(updatedOrder);
         toast.success("Order confirmed successfully!");
         setIsConfirmed(true);
-        navigate("/success", { state: { order: updatedOrder } }); // Redirect to /success with order details
+        navigate("/success", { state: { order: updatedOrder } });
       } else {
         throw new Error(response.data.message || "Failed to confirm order");
       }
@@ -257,7 +284,7 @@ const OrderConfirmation: React.FC = () => {
         const updatedOrder: OrderType = { ...order, status: "Cancelled" };
         setOrder(updatedOrder);
         toast.success("Order cancelled successfully!");
-        navigate("/books"); // Navigate to /books after cancellation
+        navigate("/books");
       } else {
         throw new Error(response.data.message || "Failed to cancel order");
       }
@@ -350,20 +377,25 @@ const OrderConfirmation: React.FC = () => {
                 </h2>
                 <div className="space-y-3">
                   {order.orderedBooks && order.orderedBooks.length > 0 ? (
-                    order.orderedBooks.map((book) => (
-                      <div
-                        key={book.id}
-                        className="flex justify-between items-center text-sm"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-700">{book.title}</span>
-                          <span className="text-gray-500 text-xs bg-gray-100 px-2 py-0.5 rounded-full">
-                            x{book.quantity}
-                          </span>
+                    order.orderedBooks.map((book) => {
+                      const itemPrice = book.discount && book.discount > 0
+                        ? book.price * (1 - book.discount)
+                        : book.price;
+                      return (
+                        <div
+                          key={book.id}
+                          className="flex justify-between items-center text-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-700">{book.title}</span>
+                            <span className="text-gray-500 text-xs bg-gray-100 px-2 py-0.5 rounded-full">
+                              x{book.quantity}
+                            </span>
+                          </div>
+                          <span>Rs {(itemPrice * book.quantity).toFixed(2)}</span>
                         </div>
-                        <span>Rs {(book.price * book.quantity).toFixed(2)}</span>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <p className="text-gray-500">No items to display.</p>
                   )}
@@ -379,7 +411,13 @@ const OrderConfirmation: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Discount</span>
                     <span className="text-green-600">
-                      - Rs {order.discount.toFixed(2)}
+                      {(order.discount)*100}% <span className="text-red-400"> (+ book discount)</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Discount Amount</span>
+                    <span className="text-green-600">
+                      - Rs {order.discountAmount.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -391,7 +429,8 @@ const OrderConfirmation: React.FC = () => {
                   <span>Rs {order.total.toFixed(2)}</span>
                 </div>
 
-                {!isConfirmed && (
+                {/* Discount coupon input commented out as in original */}
+                {/* {!isConfirmed && (
                   <div className="mt-8 relative">
                     <input
                       type="text"
@@ -402,7 +441,7 @@ const OrderConfirmation: React.FC = () => {
                       Apply
                     </button>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
           </div>
