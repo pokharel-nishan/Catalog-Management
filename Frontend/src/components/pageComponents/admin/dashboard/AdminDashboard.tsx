@@ -1,13 +1,14 @@
+import { useEffect, useState } from 'react';
 import {
   BookOpen,
   Users,
   ShoppingCart,
   DollarSign,
-  Filter,
-  TrendingUp,
   ArrowUpRight,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+  Megaphone,
+  Bell,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   AreaChart,
   Area,
@@ -19,401 +20,587 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-} from "recharts";
+} from 'recharts';
+import apiClient from '../../../../api/config'; // Adjust path as needed
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-// Define type for the sales data
-interface SalesData {
+// Define types based on backend API responses
+interface Book {
+  bookId: string;
+  isbn: string;
+  userId: string;
+  title: string;
+  author: string;
+  publisher: string;
+  publicationDate: string;
+  genre: string;
+  language: string;
+  format: string;
+  description: string;
+  price: number;
+  stock: number;
+  imageURL: string;
+  discount: number;
+  discountStartDate: string | null;
+  discountEndDate: string | null;
+  arrivalDate: string | null;
+}
+
+interface User {
+  firstName: string;
+  lastName: string;
+  address: string;
+  dateJoined: string;
+  email: string;
+  roles: string[] | null;
+}
+
+interface OrderItem {
+  bookId: string;
+  title: string;
+  imageUrl: string | null;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  subtotal: number;
+}
+
+interface Order {
+  orderId: string;
+  userId: string;
+  orderDate: string;
+  status: 'Pending' | 'Ongoing' | 'Completed' | 'Cancelled';
+  totalPrice: number;
+  claimCode: string;
+  discount: number | null;
+  items: OrderItem[];
+}
+
+interface Announcement {
+  announcementId: string;
+  userId: string;
+  description: string;
+  postedAt: string;
+  expiryDate: string;
+  isPublished: boolean;
+}
+
+interface OrdersData {
   name: string;
-  sales: number;
   orders: number;
 }
 
-// Define type for the category data
-interface CategoryData {
+interface StatusData {
   name: string;
   value: number;
 }
 
-// Define type for the book data
-interface Book {
-  id: number;
-  title: string;
-  author: string;
-  sales: number;
-  price: string;
-  stock: number;
-  category: string;
-}
-
-// Define type for the order data with status type
-interface Order {
-  id: string;
-  customer: string;
-  date: string;
-  items: number;
-  total: string;
-  status: "Completed" | "Processing" | "Shipped" | "Cancelled";
-}
-
-const salesData: SalesData[] = [
-  { name: "Jan", sales: 4000, orders: 240 },
-  { name: "Feb", sales: 3000, orders: 200 },
-  { name: "Mar", sales: 5000, orders: 310 },
-  { name: "Apr", sales: 7000, orders: 450 },
-  { name: "May", sales: 5000, orders: 320 },
-  { name: "Jun", sales: 6000, orders: 380 },
-];
-
-const categoryData: CategoryData[] = [
-  { name: "Fiction", value: 35 },
-  { name: "Science", value: 20 },
-  { name: "Business", value: 15 },
-  { name: "Biography", value: 10 },
-  { name: "Self-Help", value: 20 },
-];
-
-const recentBooks: Book[] = [
-  {
-    id: 1,
-    title: "The Silent Echo",
-    author: "Maria Johnson",
-    sales: 243,
-    price: "$24.99",
-    stock: 54,
-    category: "Fiction",
-  },
-  {
-    id: 2,
-    title: "Quantum Physics Simplified",
-    author: "Alan Cooper",
-    sales: 185,
-    price: "$32.99",
-    stock: 27,
-    category: "Science",
-  },
-  {
-    id: 3,
-    title: "Market Disruptions",
-    author: "Sarah Williams",
-    sales: 139,
-    price: "$29.99",
-    stock: 41,
-    category: "Business",
-  },
-  {
-    id: 4,
-    title: "The Art of Focus",
-    author: "David Chen",
-    sales: 127,
-    price: "$19.99",
-    stock: 35,
-    category: "Self-Help",
-  },
-];
-
-const recentOrders: Order[] = [
-  {
-    id: "#ORD-7429",
-    customer: "John Smith",
-    date: "11 May 2025",
-    items: 3,
-    total: "$87.97",
-    status: "Completed",
-  },
-  {
-    id: "#ORD-7428",
-    customer: "Emma Wilson",
-    date: "10 May 2025",
-    items: 1,
-    total: "$32.99",
-    status: "Processing",
-  },
-  {
-    id: "#ORD-7427",
-    customer: "Michael Brown",
-    date: "10 May 2025",
-    items: 2,
-    total: "$49.98",
-    status: "Completed",
-  },
-  {
-    id: "#ORD-7426",
-    customer: "Lisa Johnson",
-    date: "09 May 2025",
-    items: 4,
-    total: "$105.96",
-    status: "Shipped",
-  },
-];
-
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function DashboardAnalytics() {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [ordersData, setOrdersData] = useState<OrdersData[]>([]);
+  const [statusData, setStatusData] = useState<StatusData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalInventoryPrice, setTotalInventoryPrice] = useState(0);
+  const [totalSales, setTotalSales] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalActiveAnnouncements, setTotalActiveAnnouncements] = useState(0);
+  const [totalPublishedAnnouncements, setTotalPublishedAnnouncements] = useState(0);
+
+  // Fetch all data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch books
+        const booksResponse = await apiClient.get('/Book/getallBooks');
+        const fetchedBooks: Book[] = booksResponse.data || [];
+        setBooks(fetchedBooks);
+
+        // Fetch orders
+        const ordersResponse = await apiClient.get('/Order/admin/all-orders');
+        const fetchedOrders: Order[] = ordersResponse.data.orders || [];
+        setOrders(fetchedOrders);
+
+        // Fetch users
+        const usersResponse = await apiClient.get('/User/all-users', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        const fetchedUsers: User[] = usersResponse.data.userDetails?.result || [];
+        setUsers(fetchedUsers);
+
+        // Fetch announcements
+        const announcementsResponse = await apiClient.get('/Announcement/getAllAnnouncements');
+        const fetchedAnnouncements: Announcement[] = announcementsResponse.data || [];
+        // Filter active announcements
+        const now = new Date();
+        const activeAnnouncements = fetchedAnnouncements.filter((a: Announcement) => {
+          const postedAt = new Date(a.postedAt || '');
+          const expiryDate = new Date(a.expiryDate || '');
+          return a.isPublished && postedAt <= now && expiryDate > now;
+        });
+        const publishedAnnouncements = fetchedAnnouncements.filter(
+          (a: Announcement) => a.isPublished
+        );
+        setAnnouncements(activeAnnouncements);
+        setTotalActiveAnnouncements(activeAnnouncements.length);
+        setTotalPublishedAnnouncements(publishedAnnouncements.length);
+
+        // Process data
+        // 1. Total Inventory Price
+        const inventoryPrice = fetchedBooks.reduce(
+          (sum: number, book: Book) => sum + (book.price || 0) * (book.stock || 0),
+          0
+        );
+        setTotalInventoryPrice(inventoryPrice);
+
+        // 2. Total Sales (sum of totalPrice from Completed orders)
+        const sales = fetchedOrders
+          .filter((order: Order) => order.status === 'Completed')
+          .reduce((sum: number, order: Order) => sum + (order.totalPrice || 0), 0);
+        setTotalSales(sales);
+
+        // 3. Total Orders
+        setTotalOrders(fetchedOrders.length);
+
+        // 4. Total Users
+        setTotalUsers(fetchedUsers.length);
+
+        // 5. Orders Data (by month for the last 6 months)
+        const months = Array.from({ length: 6 }, (_, i) => {
+          const date = new Date();
+          date.setMonth(date.getMonth() - i);
+          return {
+            name: date.toLocaleString('default', { month: 'short', year: 'numeric' }),
+            date: date.getFullYear() + '-' + (date.getMonth() + 1).toString().padStart(2, '0'),
+          };
+        }).reverse();
+
+        const ordersByMonth = months.map((month) => {
+          const monthOrders = fetchedOrders.filter((order: Order) => {
+            const orderDate = new Date(order.orderDate || '');
+            if (isNaN(orderDate.getTime())) return false;
+            const orderMonth =
+              orderDate.getFullYear() + '-' + (orderDate.getMonth() + 1).toString().padStart(2, '0');
+            return orderMonth === month.date;
+          });
+          console.log(`Orders for ${month.name}: ${monthOrders.length}`); // Debugging
+          return {
+            name: month.name,
+            orders: monthOrders.length,
+          };
+        });
+        setOrdersData(ordersByMonth);
+
+        // 6. Order Status Distribution
+        const statusCounts: { [key: string]: number } = {
+          Pending: 0,
+          Ongoing: 0,
+          Completed: 0,
+          Cancelled: 0,
+        };
+        fetchedOrders.forEach((order: Order) => {
+          const status = order.status || 'Unknown';
+          if (status in statusCounts) {
+            statusCounts[status]++;
+          }
+        });
+        const totalOrdersCount = fetchedOrders.length;
+        const statuses = Object.entries(statusCounts)
+          .filter(([_, count]) => count > 0) // Only include statuses with orders
+          .map(([name, count]) => ({
+            name,
+            value: totalOrdersCount > 0 ? Math.round((count / totalOrdersCount) * 100) : 0,
+          }));
+        setStatusData(statuses);
+      } catch (error: any) {
+        console.error('Failed to fetch dashboard data:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
+        toast.error(error.response?.data?.message || 'Failed to load dashboard data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Format currency
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  };
+
+  // Render status badge
   const renderStatus = (
-    status: "Completed" | "Processing" | "Shipped" | "Cancelled"
+    status: 'Pending' | 'Ongoing' | 'Completed' | 'Cancelled' | 'Unknown'
   ) => {
     const statusStyles = {
-      Completed: "bg-green-100 text-green-800",
-      Processing: "bg-blue-100 text-blue-800",
-      Shipped: "bg-purple-100 text-purple-800",
-      Cancelled: "bg-red-100 text-red-800",
+      Completed: 'bg-green-100 text-green-800',
+      Ongoing: 'bg-blue-100 text-blue-800',
+      Pending: 'bg-yellow-100 text-yellow-800',
+      Cancelled: 'bg-red-100 text-red-800',
+      Unknown: 'bg-gray-100 text-gray-800',
     };
 
     return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status]}`}
-      >
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status]}`}>
         {status}
       </span>
     );
   };
 
+  // Compute book sales from orders
+  const bookSales = orders
+    .filter((order) => order.status === 'Completed')
+    .reduce((acc: { [key: string]: number }, order: Order) => {
+      (order.items || []).forEach((item: OrderItem) => {
+        acc[item.bookId] = (acc[item.bookId] || 0) + (item.quantity || 0);
+      });
+      return acc;
+    }, {});
+
+  // Get best-selling books (top 4 by computed sales)
+  const bestSellingBooks = [...books]
+    .map((book) => ({
+      id: book.bookId,
+      title: book.title || 'Unknown Title',
+      author: book.author || 'Unknown Author',
+      sales: bookSales[book.bookId] || 0,
+      price: formatCurrency(book.price || 0),
+    }))
+    .sort((a, b) => b.sales - a.sales)
+    .slice(0, 4);
+
+  // Compute user order counts
+  const userOrderCounts = orders.reduce((acc: { [key: string]: number }, order: Order) => {
+    const userId = order.userId || 'unknown';
+    acc[userId] = (acc[userId] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Get recent orders (latest 4 by orderDate)
+  const recentOrders = [...orders]
+    .sort((a, b) =>
+      new Date(b.orderDate || '').getTime() - new Date(a.orderDate || '').getTime()
+    )
+    .slice(0, 4)
+    .map((order) => {
+      const user = users.find((u) => u.email === order.userId) || {
+        firstName: 'Unknown',
+        lastName: '',
+      };
+      return {
+        id: order.orderId || 'Unknown ID',
+        customer: `${user.firstName} ${user.lastName}`.trim() || 'Unknown Customer',
+        date: order.orderDate
+          ? new Date(order.orderDate).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })
+          : 'Unknown Date',
+        items: (order.items || []).reduce(
+          (sum, item: OrderItem) => sum + (item.quantity || 0),
+          0
+        ),
+        total: formatCurrency(order.totalPrice || 0),
+        status: order.status || 'Unknown',
+      };
+    });
+
+  // Calculate percentage changes
+  const getPercentageChange = (current: number, previous: number) => {
+    if (previous === 0) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  // Assume previous month's values are 90% of current
+  const salesChange = getPercentageChange(totalSales, totalSales * 0.9).toFixed(1);
+  const ordersChange = getPercentageChange(totalOrders, totalOrders * 0.9).toFixed(1);
+  const usersChange = getPercentageChange(totalUsers, totalUsers * 0.9).toFixed(1);
+  const booksChange = getPercentageChange(books.length, books.length * 0.9).toFixed(1);
+  const activeAnnouncementsChange = getPercentageChange(
+    totalActiveAnnouncements,
+    totalActiveAnnouncements * 0.9
+  ).toFixed(1);
+
   return (
     <div className="p-6 bg-gray-50">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-600">
-          Welcome back! Here's what's happening with your store today.
-        </p>
+        <p className="text-gray-600">Welcome back! Here's what's happening with your store today.</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Total Sales</p>
-              <p className="text-2xl font-bold">$24,589</p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-full">
-              <DollarSign className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-          <div className="flex items-center mt-2 text-sm">
-            <ArrowUpRight className="h-4 w-4 text-green-500" />
-            <span className="text-green-500 font-medium ml-1">+12.5%</span>
-            <span className="text-gray-500 ml-2">from last month</span>
-          </div>
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p>Loading dashboard data...</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Total Orders</p>
-              <p className="text-2xl font-bold">1,520</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Total Orders</p>
+                  <p className="text-2xl font-bold">{totalOrders}</p>
+                </div>
+                <div className="bg-blue-100 p-3 rounded-full">
+                  <ShoppingCart className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+              <div className="flex items-center mt-2 text-sm">
+                <ArrowUpRight className="h-4 w-4 text-green-500" />
+                <span className="text-green-500 font-medium ml-1">{ordersChange}%</span>
+                <span className="text-gray-500 ml-2">from last month</span>
+              </div>
             </div>
-            <div className="bg-blue-100 p-3 rounded-full">
-              <ShoppingCart className="h-6 w-6 text-blue-600" />
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Total Customers</p>
+                  <p className="text-2xl font-bold">{totalUsers}</p>
+                </div>
+                <div className="bg-purple-100 p-3 rounded-full">
+                  <Users className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+              <div className="flex items-center mt-2 text-sm">
+                <ArrowUpRight className="h-4 w-4 text-green-500" />
+                <span className="text-green-500 font-medium ml-1">{usersChange}%</span>
+                <span className="text-gray-500 ml-2">from last month</span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center mt-2 text-sm">
-            <ArrowUpRight className="h-4 w-4 text-green-500" />
-            <span className="text-green-500 font-medium ml-1">+8.2%</span>
-            <span className="text-gray-500 ml-2">from last month</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Total Customers</p>
-              <p className="text-2xl font-bold">892</p>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Inventory Value</p>
+                  <p className="text-2xl font-bold">{formatCurrency(totalInventoryPrice)}</p>
+                </div>
+                <div className="bg-yellow-100 p-3 rounded-full">
+                  <BookOpen className="h-6 w-6 text-yellow-600" />
+                </div>
+              </div>
+              <div className="flex items-center mt-2 text-sm">
+                <ArrowUpRight className="h-4 w-4 text-green-500" />
+                <span className="text-green-500 font-medium ml-1">{booksChange}%</span>
+                <span className="text-gray-500 ml-2">from last month</span>
+              </div>
             </div>
-            <div className="bg-purple-100 p-3 rounded-full">
-              <Users className="h-6 w-6 text-purple-600" />
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Active Announcements</p>
+                  <p className="text-2xl font-bold">{totalActiveAnnouncements}</p>
+                </div>
+                <div className="bg-orange-100 p-3 rounded-full">
+                  <Megaphone className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+              <div className="flex items-center mt-2 text-sm">
+                <ArrowUpRight className="h-4 w-4 text-green-500" />
+                <span className="text-green-500 font-medium ml-1">{activeAnnouncementsChange}%</span>
+                <span className="text-gray-500 ml-2">from last month</span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center mt-2 text-sm">
-            <ArrowUpRight className="h-4 w-4 text-green-500" />
-            <span className="text-green-500 font-medium ml-1">+5.3%</span>
-            <span className="text-gray-500 ml-2">from last month</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Total Books</p>
-              <p className="text-2xl font-bold">324</p>
-            </div>
-            <div className="bg-yellow-100 p-3 rounded-full">
-              <BookOpen className="h-6 w-6 text-yellow-600" />
-            </div>
-          </div>
-          <div className="flex items-center mt-2 text-sm">
-            <ArrowUpRight className="h-4 w-4 text-green-500" />
-            <span className="text-green-500 font-medium ml-1">+2.7%</span>
-            <span className="text-gray-500 ml-2">from last month</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium">Sales Overview</h2>
-            <div className="flex items-center">
-              <div className="flex space-x-1">
-                <button className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
-                  By Month
-                </button>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Published Announcements</p>
+                  <p className="text-2xl font-bold">{totalPublishedAnnouncements}</p>
+                </div>
+                <div className="bg-teal-100 p-3 rounded-full">
+                  <Bell className="h-6 w-6 text-teal-600" />
+                </div>
+              </div>
+              <div className="flex items-center mt-2 text-sm">
+                <span className="text-gray-500">Updated as of today</span>
               </div>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart
-              data={salesData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <CartesianGrid strokeDasharray="3 3" />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="sales"
-                stroke="#3b82f6"
-                fillOpacity={1}
-                fill="url(#colorSales)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium">Category Distribution</h2>
-            <button className="flex items-center text-sm text-blue-600">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              <Link to="/admin/books">View All Books</Link>
-            </button>
-          </div>
-          <div className="flex">
-            <div className="w-1/2">
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="w-1/2 flex flex-col justify-center">
-              {categoryData.map((item, index) => (
-                <div key={index} className="flex items-center mb-2">
-                  <div
-                    className="w-3 h-3 rounded-full mr-2"
-                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                  ></div>
-                  <div className="text-sm flex-1">{item.name}</div>
-                  <div className="text-sm font-medium">{item.value}%</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Recent Books and Orders */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium">Best Selling Books</h2>
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium">Orders Overview</h2>
+                <div className="flex items-center">
+                  <button className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
+                    By Month
+                  </button>
+                </div>
+              </div>
+              {ordersData.every((data) => data.orders === 0) ? (
+                <div className="text-center py-8 text-gray-500">
+                  No orders data available for the last 6 months.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart
+                    data={ordersData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <Tooltip formatter={(value: number) => `${value} orders`} />
+                    <Area
+                      type="monotone"
+                      dataKey="orders"
+                      stroke="#3b82f6"
+                      fillOpacity={1}
+                      fill="url(#colorOrders)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium">Order Status Distribution</h2>
+                <button className="flex items-center text-sm text-blue-600">
+                  <Link to="/admin/orders">View All Orders</Link>
+                </button>
+              </div>
+              {statusData.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No order status data available.
+                </div>
+              ) : (
+                <div className="flex">
+                  <div className="w-1/2">
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={statusData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {statusData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => `${value}%`} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="w-1/2 flex flex-col justify-center">
+                    {statusData.map((item, index) => (
+                      <div key={index} className="flex items-center mb-2">
+                        <div
+                          className="w-3 h-3 rounded-full mr-2"
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        ></div>
+                        <div className="text-sm flex-1">{item.name}</div>
+                        <div className="text-sm font-medium">{item.value}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Author
-                  </th>
-                  <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sales
-                  </th>
-                  <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBooks.map((book) => (
-                  <tr key={book.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 text-sm font-medium">{book.title}</td>
-                    <td className="py-3 text-sm text-gray-500">
-                      {book.author}
-                    </td>
-                    <td className="py-3 text-sm">{book.sales}</td>
-                    <td className="py-3 text-sm">{book.price}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          {/* Recent Books and Orders */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-medium">Best Selling Books</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Title
+                      </th>
+                      <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Author
+                      </th>
+                      <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Sales
+                      </th>
+                      <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Price
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bestSellingBooks.map((book) => (
+                      <tr key={book.id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 text-sm font-medium">{book.title}</td>
+                        <td className="py-3 text-sm text-gray-500">{book.author}</td>
+                        <td className="py-3 text-sm">{book.sales}</td>
+                        <td className="py-3 text-sm">{book.price}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-medium">Recent Orders</h2>
+                <button className="text-sm text-blue-600">
+                  <Link to="/admin/orders">View All</Link>
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Order ID
+                      </th>
+                      <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentOrders.map((order) => (
+                      <tr key={order.id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 text-sm font-medium">{order.id}</td>
+                        <td className="py-3 text-sm text-gray-500">{order.customer}</td>
+                        <td className="py-3 text-sm">{order.total}</td>
+                        <td className="py-3 text-sm">{renderStatus(order.status)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium">Recent Orders</h2>
-            <button className="text-sm text-blue-600">
-              <Link to="/admin/orders">View All</Link>
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Order ID
-                  </th>
-                  <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="text-left pb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrders.map((order) => (
-                  <tr key={order.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 text-sm font-medium">{order.id}</td>
-                    <td className="py-3 text-sm text-gray-500">
-                      {order.customer}
-                    </td>
-                    <td className="py-3 text-sm">{order.total}</td>
-                    <td className="py-3 text-sm">
-                      {renderStatus(order.status)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
