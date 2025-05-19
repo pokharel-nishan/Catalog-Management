@@ -40,8 +40,6 @@ interface OrderType {
   orderedBooks: BookType[];
   subtotal: number;
   discount: number;
-  shippingCost: number;
-  tax: number;
   total: number;
 }
 
@@ -181,8 +179,6 @@ const OrderConfirmation: React.FC = () => {
               : [],
             subtotal: fetchedOrder.subtotal || fetchedOrder.totalPrice || 0,
             discount: fetchedOrder.discount || 0,
-            shippingCost: fetchedOrder.shippingCost || 50.00,
-            tax: fetchedOrder.tax || 0,
             total: fetchedOrder.total || fetchedOrder.totalPrice || 0,
           };
           setOrder(transformedOrder);
@@ -385,14 +381,6 @@ const OrderConfirmation: React.FC = () => {
                     <span className="text-green-600">
                       - Rs {order.discount.toFixed(2)}
                     </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping Cost</span>
-                    <span>Rs {order.shippingCost.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Tax amount</span>
-                    <span>Rs {order.tax.toFixed(2)}</span>
                   </div>
                 </div>
 

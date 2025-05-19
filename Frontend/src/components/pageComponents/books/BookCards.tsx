@@ -6,8 +6,7 @@ import { useCart } from "../cart/CartContext";
 import { useAuth } from "../../../context/AuthContext";
 import type { Book } from "../../../types/book";
 import apiClient from "../../../api/config";
-import { jwtDecode } from "jwt-decode"; 
-
+import { jwtDecode } from "jwt-decode";
 
 interface BookCardProps {
   books: Book[];
@@ -28,7 +27,9 @@ interface ReviewDTO {
 }
 
 const BookCard: React.FC<BookCardProps> = ({ books }) => {
-  const [bookRatings, setBookRatings] = useState<{ [key: string]: { rating: number; voters: string } }>({});
+  const [bookRatings, setBookRatings] = useState<{
+    [key: string]: { rating: number; voters: string };
+  }>({});
   const [likedBooks, setLikedBooks] = useState<{ [key: string]: boolean }>({});
   const [justClicked, setJustClicked] = useState<string | null>(null);
   const { user, logout } = useAuth();
@@ -64,7 +65,10 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
               reviews: res.data.success ? res.data.reviews || [] : [],
             }))
             .catch((error) => {
-              console.error(`Failed to fetch reviews for book ${bookId}:`, error);
+              console.error(
+                `Failed to fetch reviews for book ${bookId}:`,
+                error
+              );
               return { bookId, reviews: [] };
             });
         });
@@ -73,9 +77,13 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
         const ratingsMap = reviewResults.reduce((acc, { bookId, reviews }) => {
           if (bookId) {
             const voterCount = reviews.length;
-            const averageRating = voterCount > 0
-              ? reviews.reduce((sum: number, review: ReviewDTO) => sum + review.rating, 0) / voterCount
-              : 0;
+            const averageRating =
+              voterCount > 0
+                ? reviews.reduce(
+                    (sum: number, review: ReviewDTO) => sum + review.rating,
+                    0
+                  ) / voterCount
+                : 0;
             acc[bookId] = {
               rating: averageRating,
               voters: voterCount.toString(),
@@ -86,7 +94,8 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
         setBookRatings(ratingsMap);
 
         if (isAuthenticated) {
-          const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+          const token =
+            localStorage.getItem("token") || sessionStorage.getItem("token");
           if (token && isTokenExpired(token)) {
             toast.error("Session expired during bookmark check. Logging out.");
             logout();
@@ -108,8 +117,13 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
                   isBookmarked: res.data.isBookmarked || false,
                 }))
                 .catch((error: unknown) => {
-                  const axiosError = error as { response?: { status?: number; data?: any } };
-                  console.error(`Failed to fetch bookmark status for book ${bookId}:`, axiosError);
+                  const axiosError = error as {
+                    response?: { status?: number; data?: any };
+                  };
+                  console.error(
+                    `Failed to fetch bookmark status for book ${bookId}:`,
+                    axiosError
+                  );
                   if (axiosError.response?.status === 401) {
                     toast.error(
                       "Session expired during bookmark check. Logging out."
@@ -131,8 +145,13 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
           setLikedBooks(initialLikedBooks);
         }
       } catch (error: unknown) {
-        const axiosError = error as { response?: { status?: number; data?: any } };
-        console.error("Unexpected error in fetchReviewsAndBookmarks:", axiosError);
+        const axiosError = error as {
+          response?: { status?: number; data?: any };
+        };
+        console.error(
+          "Unexpected error in fetchReviewsAndBookmarks:",
+          axiosError
+        );
         if (axiosError.response?.status === 401) {
           toast.error("Session expired during bookmark check. Logging out.");
           logout();
@@ -159,7 +178,8 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
       return;
     }
 
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token || isTokenExpired(token)) {
       toast.error("Session expired or no token. Please log in again.");
       logout();
@@ -168,9 +188,13 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
     }
 
     try {
-      const response = await apiClient.post(`/Bookmark/toggle/${bookId}`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiClient.post(
+        `/Bookmark/toggle/${bookId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (response.data.success) {
         setLikedBooks((prev) => ({
           ...prev,
@@ -181,7 +205,9 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
         toast.error("Failed to update wishlist. Please try again.");
       }
     } catch (error: unknown) {
-      const axiosError = error as { response?: { status?: number; data?: any } };
+      const axiosError = error as {
+        response?: { status?: number; data?: any };
+      };
       console.error("Failed to toggle bookmark:", axiosError);
       if (axiosError.response?.status === 401) {
         toast.error("Session expired. Please log in again.");
@@ -226,7 +252,11 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
         {[...Array(5)].map((_, i) => (
           <svg
             key={i}
-            className={`w-4 h-4 ${i < Math.floor(rating) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+            className={`w-4 h-4 ${
+              i < Math.floor(rating)
+                ? "text-yellow-400 fill-yellow-400"
+                : "text-gray-300"
+            }`}
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -234,7 +264,8 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
           </svg>
         ))}
         <span className="text-gray-400 ml-2 text-xs font-light">
-          ({parseInt(voters) || 0} {parseInt(voters) === 1 ? "voter" : "voters"})
+          ({parseInt(voters) || 0} {parseInt(voters) === 1 ? "voter" : "voters"}
+          )
         </span>
       </div>
     );
@@ -247,6 +278,9 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4">
       {books.map((book) => {
+        const discountedPrice =
+          book.discount > 0 ? book.price * (1 - book.discount) : book.price;
+
         const isOutOfStock = !book.inStock;
         const bookId = book.bookId || book.id;
         if (!bookId) {
@@ -297,8 +331,19 @@ const BookCard: React.FC<BookCardProps> = ({ books }) => {
                   <p className="text-xs text-gray-400 line-clamp-3 mt-2">
                     {book.description || "No description available."}
                   </p>
-                  <p className="text-xs text-gray-400 line-clamp-3 mt-2">
-                    {book.description || "No description available."}
+                  <p className="text-base text-gray-800 line-clamp-3 mt-2">
+                    {book.discount > 0 ? (
+                      <>
+                        <span className="text-orange-500">
+                          ${discountedPrice.toFixed(2)}
+                        </span>
+                        <span className="text-gray-500 line-through ml-2">
+                          ${book.price.toFixed(2)}
+                        </span>
+                      </>
+                    ) : (
+                      <span>${book.price.toFixed(2)}</span>
+                    )}
                   </p>
                 </Link>
 
