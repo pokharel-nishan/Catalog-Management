@@ -190,5 +190,22 @@ namespace Backend.Repositories
                 .AsNoTracking()
                 .ToListAsync();
         }
+        
+        public async Task<Dictionary<Guid, int>> GetBookSalesCountsAsync()
+        {
+            try
+            {
+                return await _context.OrderBooks
+                    .Where(ob => ob.Order.Status == OrderStatus.Completed)
+                    .GroupBy(ob => ob.BookId)
+                    .Select(g => new { BookId = g.Key, Count = g.Sum(ob => ob.BookQuantity) })
+                    .ToDictionaryAsync(x => x.BookId, x => x.Count);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in BookRepository.GetBookSalesCountsAsync: {ex.Message}");
+                return new Dictionary<Guid, int>();
+            }
+        }
     }
 }
