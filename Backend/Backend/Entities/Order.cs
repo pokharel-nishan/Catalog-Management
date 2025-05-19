@@ -28,7 +28,8 @@ public class Order
     public int TotalQuantity { get; set; }
     
     public decimal TotalPrice { get; set; }
-    
+        
+    public decimal SubTotal { get; set; }
     public decimal Discount { get; set; }
     
     public string ClaimCode { get; set; }
