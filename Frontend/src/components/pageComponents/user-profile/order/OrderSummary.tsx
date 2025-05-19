@@ -173,7 +173,7 @@ const OrderConfirmation: React.FC = () => {
                   id: item.bookId || item.id || "unknown",
                   title: item.title || item.bookTitle || "Untitled",
                   author: item.author || "Unknown Author",
-                  coverImage: item.coverImage || item.imageUrl || "",
+                  coverImage: item.imageUrl,
                   price: item.price || item.unitPrice || 0,
                   quantity: item.quantity || 1,
                   discount: item.discount || 0,

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import type { FormEvent } from "react";
-import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../../../api/config.ts";
 import { toast } from "react-toastify";
@@ -138,27 +137,6 @@ export default function LoginComponent() {
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-gray-700 font-medium">
-                Login as
-              </label>
-              <div className="relative">
-                <select
-                  name="loginAs"
-                  value={formData.loginAs}
-                  onChange={handleChange}
-                  className="w-full p-3 bg-gray-100 rounded-md appearance-none pr-10"
-                >
-                  <option>User</option>
-                  <option>Staff</option>
-                  <option>Admin</option>
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
-                  <FaChevronDown />
-                </div>
               </div>
             </div>
 
