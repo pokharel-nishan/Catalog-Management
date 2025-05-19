@@ -79,11 +79,28 @@ namespace Backend.Repositories
         
         public async Task<List<Announcement>> GetActiveAnnouncementsAsync(DateTime currentTime)
         {
-            return await _context.Announcements
-                .Where(a => a.IsPublished && 
-                            (a.ExpiryDate == null || a.ExpiryDate > currentTime))
-                .OrderByDescending(a => a.PostedAt)
-                .ToListAsync();
+           var announcements = await _context.Announcements
+        .Where(a => a.IsPublished &&
+                    (a.ExpiryDate == null || a.ExpiryDate > currentTime))
+        .ToListAsync();
+
+        // Applying manual bubble sort to sort by PostedAt in descending order
+        for (int i = 0; i < announcements.Count - 1; i++)
+        {
+            for (int j = 0; j < announcements.Count - i - 1; j++)
+            {
+                if (announcements[j].PostedAt < announcements[j + 1].PostedAt)
+                {
+                    var temp = announcements[j];
+                    announcements[j] = announcements[j + 1];
+                    announcements[j + 1] = temp;
+                }
+            }
         }
+
+        return announcements;
+        }
+        
+
     }
 }
