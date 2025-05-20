@@ -239,7 +239,7 @@ const UserWishlist = () => {
           {wishlist.length === 0 ? (
             <div className="text-center mt-20">
               <img
-                src="/images/empty_wishlist.png"
+                src="/noresults.png"
                 alt="Empty Wishlist"
                 className="w-32 h-32 lg:w-56 lg:h-56 object-contain mx-auto"
               />

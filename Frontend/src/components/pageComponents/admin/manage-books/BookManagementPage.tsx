@@ -515,7 +515,7 @@ export const AdminBookManagement = () => {
                   {discountActive ? (
                     <>
                       <span className="line-through text-gray-500 mr-2">
-                        ${book.price.toFixed(2)}
+                        Rs. {book.price.toFixed(2)}
                       </span>
                       <span className="text-green-600">
                         {formatPrice(book.price, book.discount)}
@@ -523,14 +523,14 @@ export const AdminBookManagement = () => {
                     </>
                   ) : discountScheduled && book.discountStartDate ? (
                     <>
-                      <span>${book.price.toFixed(2)}</span>
+                      <span>Rs. {book.price.toFixed(2)}</span>
                       <span className="text-yellow-600 ml-2">
                         (Discount {book.discount * 100}% scheduled from{" "}
                         {new Date(book.discountStartDate).toLocaleDateString()})
                       </span>
                     </>
                   ) : (
-                    <span>${book.price.toFixed(2)}</span>
+                    <span>Rs. {book.price.toFixed(2)}</span>
                   )}
                 </p>
                 <p className="ml-4 text-sm">Stock: {book.stock || 0}</p>
@@ -621,7 +621,7 @@ export const AdminBookManagement = () => {
                 {discountActive ? (
                   <>
                     <span className="line-through text-gray-500 mr-2">
-                      ${selectedBook.price.toFixed(2)}
+                      Rs. {selectedBook.price.toFixed(2)}
                     </span>
                     <span className="text-green-600">
                       {formatPrice(selectedBook.price, selectedBook.discount)}
@@ -629,14 +629,14 @@ export const AdminBookManagement = () => {
                   </>
                 ) : discountScheduled && selectedBook.discountStartDate ? (
                   <>
-                    <span>${selectedBook.price.toFixed(2)}</span>
+                    <span>Rs. {selectedBook.price.toFixed(2)}</span>
                     <span className="text-yellow-600 ml-2">
                       (Discount {selectedBook.discount * 100}% scheduled from{" "}
                       {new Date(selectedBook.discountStartDate).toLocaleDateString()})
                     </span>
                   </>
                 ) : (
-                  <span>${selectedBook.price.toFixed(2)}</span>
+                  <span>Rs. {selectedBook.price.toFixed(2)}</span>
                 )}
               </p>
             </div>

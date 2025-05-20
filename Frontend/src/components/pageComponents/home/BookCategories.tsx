@@ -505,13 +505,13 @@ const HomeComponent: React.FC = () => {
                       <p className="text-base text-gray-800 line-clamp-3 mt-2">
                         {book.discount > 0 ? (
                           <>
-                            <span className="text-orange-500">${discountedPrice.toFixed(2)}</span>
+                            <span className="text-orange-500">Rs. {discountedPrice.toFixed(2)}</span>
                             <span className="text-gray-500 line-through ml-2">
-                              ${book.price.toFixed(2)}
+                              Rs.{book.price.toFixed(2)}
                             </span>
                           </>
                         ) : (
-                          <span>${book.price.toFixed(2)}</span>
+                          <span>Rs.{book.price.toFixed(2)}</span>
                         )}
                       </p>
                     </Link>
