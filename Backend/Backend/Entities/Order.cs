@@ -28,7 +28,8 @@ public class Order
     public int TotalQuantity { get; set; }
     
     public decimal TotalPrice { get; set; }
-    
+        
+    public decimal SubTotal { get; set; }
     public decimal Discount { get; set; }
     
     public string ClaimCode { get; set; }
@@ -38,4 +39,6 @@ public class Order
     
     public virtual Cart Cart { get; set; }
     public virtual User User { get; set; }
+    public virtual ICollection<OrderBook> OrderBooks { get; set; }
+
 }

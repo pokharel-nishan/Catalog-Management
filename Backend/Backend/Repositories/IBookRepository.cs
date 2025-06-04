@@ -1,14 +1,42 @@
-﻿using Backend.DTOs.Admin.Book;
-using Backend.Entities;
+﻿using Backend.Entities;
 
 namespace Backend.Repositories
 {
     public interface IBookRepository
     {
-        public string AddBook(AddBookDTO addBookDTO);
-        public List<Book> GetAllBooks();
-        public Book GetBookByISBN(string ISBN);
-        public bool UpdateBook(string ISBN, UpdateBookDTO updateBookDTO);
-        public bool DeleteBook(string ISBN);
+        // Create
+        public Task<bool> AddBookAsync(Book book);
+
+        // Read
+        public Task<List<Book>> GetAllBooksAsync();
+        public Task<Book> GetBookByIdAsync(Guid bookId);
+        
+        Task<List<Book>> GetBooksByOrderIdAsync(Guid orderId);
+
+        // Update
+        public Task<bool> UpdateBookDetailsAsync(Book book);
+
+        // Delete
+        public Task<bool> DeleteBookAsync (Guid bookId);
+        
+        Task<Dictionary<Guid, int>> GetBookSalesCountsAsync();
+
+        
+        Task<(List<Book> books, int totalCount)> GetFilteredBooksAsync(
+            int skip,
+            int take, 
+            string? searchTerm,
+            string? author = null,
+            string? genre = null,
+            string? publisher = null,
+            string? language = null,
+            string? format = null,
+            decimal? minPrice = null,
+            decimal? maxPrice = null,
+            bool? inStock = null,
+            DateTime? publishedAfter = null,
+            DateTime? publishedBefore = null,
+            string? sortBy = null,
+            bool sortDescending = false);
     }
 }

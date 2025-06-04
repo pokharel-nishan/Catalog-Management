@@ -1,0 +1,33 @@
+export interface Book {
+  id: string;
+  bookId: string;
+  isbn: string;
+  userId: string;
+  title: string;
+  author: string;
+  publisher: string;
+  publicationDate: string;
+  publishedDate: string;
+  genre: string;
+  language: string;
+  format: string;
+  description: string;
+  price: number;
+  stock: number;
+  inStock: boolean;
+  imageURL: string;
+  coverImage: string;
+  discount: number;
+  discountStartDate: string | null;
+  discountEndDate: string | null;
+  arrivalDate: string | null;
+  rating: number;
+  voters: number | string;
+  pages: number;
+  location: string;
+  reads: string;
+  salePercentage: number;
+  isNewRelease: boolean;
+  isComingSoon: boolean;
+  category: string[];
+}
